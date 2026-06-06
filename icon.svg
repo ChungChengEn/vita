@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#1FA97E"/>
+  <!-- heart -->
+  <path d="M256 392S128 322 128 238a64 64 0 0 1 112-42 64 64 0 0 1 112 42c0 84-128 154-128 154z" fill="#ffffff" opacity="0.95"/>
+  <!-- pulse line -->
+  <path d="M150 270h44l22-44 32 78 22-34h92" fill="none" stroke="#1FA97E" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

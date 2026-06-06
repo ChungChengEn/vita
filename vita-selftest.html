@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vita — Engine self-test</title>
+<style>
+  :root{ --ok:#1FA97E; --bad:#E0533D; --bg:#F4F7F6; --surface:#fff; --text:#16302B; --muted:#6B7C77; --border:#E1E8E5; }
+  *{ box-sizing:border-box; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:24px; }
+  .wrap{ max-width:920px; margin:0 auto; }
+  h1{ font-size:1.5rem; margin:0 0 4px; }
+  p.sub{ color:var(--muted); margin:0 0 20px; }
+  .summary{ font-size:1.1rem; font-weight:700; padding:12px 16px; border-radius:12px; margin-bottom:16px; }
+  .summary.pass{ background:rgba(31,169,126,.12); color:var(--ok); }
+  .summary.fail{ background:rgba(224,83,61,.12); color:var(--bad); }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(22,48,43,.06); font-size:.9rem; }
+  th,td{ text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th{ background:#eef3f1; font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
+  td.case{ font-weight:600; white-space:normal; }
+  .tag{ display:inline-block; padding:2px 9px; border-radius:999px; font-weight:700; font-size:.78rem; }
+  .tag.pass{ background:var(--ok); color:#fff; }
+  .tag.fail{ background:var(--bad); color:#fff; }
+  .cell-bad{ color:var(--bad); font-weight:700; }
+  code{ background:#eef3f1; padding:1px 5px; border-radius:5px; }
+  .foot{ color:var(--muted); font-size:.82rem; margin-top:18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Vita — Engine self-test</h1>
+  <p class="sub">Re-implements the index.html health engine and checks it against known-good values. 100% local, no network (enforced by CSP).</p>
+  <div id="summary"></div>
+  <div id="table"></div>
+  <p class="foot">If any row is FAIL, the engine in <code>index.html</code> has drifted from these expectations — re-check the constants. Educational tool; not medical advice.</p>
+</div>
+
+<script>
+"use strict";
+/* ---- Engine, mirrored exactly from index.html ---- */
+const ACTIVITY = { sedentary:1.2, light:1.375, moderate:1.55, very:1.725, athlete:1.9 };
+function bmi(kg, cm){ const m=cm/100; return kg/(m*m); }
+function mifflinBMR({weight,height,age,sex}){
+  const base = 10*weight + 6.25*height - 5*age;
+  return Math.round(base + (sex==="male" ? 5 : -161));
+}
+function pbfBand(pbf, sex){
+  if(pbf==null) return null;
+  if(sex==="male") return pbf<10?"low":pbf>25?"obese":pbf>20?"high":"healthy";
+  return pbf<18?"low":pbf>32?"obese":pbf>28?"high":"healthy";
+}
+function detectGoal(p){
+  const b = bmi(p.weight, p.height);
+  const band = pbfBand(p.bodyFat, p.sex);
+  if(b < 18.5 || band==="low") return "gain";
+  if(b >= 30 || band==="obese") return "lose";
+  if(b >= 25 && band==="high") return "lose";
+  if(b >= 25) return "maintain";
+  return "maintain";
+}
+const GOAL_META = {
+  gain:    { calAdj:+0.15, protein:[1.6,2.2], fat:[0.8,1.0] },
+  maintain:{ calAdj:0,     protein:[1.4,1.8], fat:[0.8,1.0] },
+  lose:    { calAdj:-0.18, protein:[1.8,2.4], fat:[0.6,0.8] }
+};
+function compute(p){
+  const b = bmi(p.weight, p.height);
+  const bmr = mifflinBMR(p);
+  const tdee = Math.round(bmr * (ACTIVITY[p.activity]||1.55));
+  const goal = p.goalOverride || detectGoal(p);
+  const gm = GOAL_META[goal];
+  const calories = Math.round(tdee * (1 + gm.calAdj));
+  const proteinG = Math.round(p.weight * (gm.protein[0]+gm.protein[1])/2);
+  const fatG = Math.round(p.weight * (gm.fat[0]+gm.fat[1])/2);
+  const carbG = Math.max(0, Math.round((calories - proteinG*4 - fatG*9)/4));
+  let hydration = p.weight * 35;
+  if(p.climate==="hot") hydration += 750;
+  hydration = Math.round(hydration/50)*50;
+  return { bmi:+b.toFixed(1), bmr, tdee, goal, calories, proteinG, fatG, carbG, hydration };
+}
+
+/* ---- Test cases: input profile + expected engine output ---- */
+const CASES = [
+  { name:"Sample profile — healthy male (temperate)",
+    p:{sex:"male", age:25, height:175, weight:66, bodyFat:14, activity:"moderate", climate:"temperate"},
+    e:{bmi:21.6, bmr:1634, tdee:2533, goal:"maintain", calories:2533, proteinG:106, fatG:59, carbG:395, hydration:2300} },
+  { name:"Sample profile — same, hot climate (hydration +)",
+    p:{sex:"male", age:25, height:175, weight:66, bodyFat:14, activity:"moderate", climate:"hot"},
+    e:{bmi:21.6, bmr:1634, tdee:2533, goal:"maintain", calories:2533, proteinG:106, fatG:59, carbG:395, hydration:3050} },
+  { name:"Female, obese-range BMI → lose (light)",
+    p:{sex:"female", age:35, height:165, weight:85, bodyFat:null, activity:"light", climate:"temperate"},
+    e:{bmi:31.2, bmr:1545, tdee:2124, goal:"lose", calories:1742, proteinG:179, fatG:59, carbG:124, hydration:3000} },
+  { name:"Male, normal BMI → maintain (moderate)",
+    p:{sex:"male", age:28, height:175, weight:72, bodyFat:null, activity:"moderate", climate:"temperate"},
+    e:{bmi:23.5, bmr:1679, tdee:2602, goal:"maintain", calories:2602, proteinG:115, fatG:65, carbG:389, hydration:2500} },
+  { name:"Male, high body-fat % → lose despite BMI<30",
+    p:{sex:"male", age:40, height:175, weight:80, bodyFat:26, activity:"moderate", climate:"hot"},
+    e:{bmi:26.1, bmr:1699, tdee:2633, goal:"lose", calories:2159, proteinG:168, fatG:56, carbG:246, hydration:3550} },
+  { name:"Male, low body-fat % but normal BMI → gain",
+    p:{sex:"male", age:25, height:180, weight:70, bodyFat:7, activity:"moderate", climate:"temperate"},
+    e:{bmi:21.6, bmr:1705, tdee:2643, goal:"gain", calories:3039, proteinG:133, fatG:63, carbG:485, hydration:2450} }
+];
+
+const FIELDS = ["bmi","bmr","tdee","goal","calories","proteinG","fatG","carbG","hydration"];
+const LABELS = {bmi:"BMI",bmr:"BMR",tdee:"TDEE",goal:"Goal",calories:"kcal",proteinG:"Protein g",fatG:"Fat g",carbG:"Carb g",hydration:"Water ml"};
+
+let pass=0, fail=0;
+let rows = CASES.map(tc=>{
+  const got = compute(tc.p);
+  let allOk = true;
+  const cells = FIELDS.map(f=>{
+    const ok = got[f]===tc.e[f];
+    if(!ok) allOk=false;
+    return `<td class="${ok?"":"cell-bad"}">${got[f]}${ok?"":" ≠"+tc.e[f]}</td>`;
+  }).join("");
+  if(allOk) pass++; else fail++;
+  return `<tr><td class="case">${tc.name}</td><td><span class="tag ${allOk?"pass":"fail"}">${allOk?"PASS":"FAIL"}</span></td>${cells}</tr>`;
+}).join("");
+
+document.getElementById("table").innerHTML =
+  `<table><thead><tr><th>Profile</th><th>Result</th>${FIELDS.map(f=>`<th>${LABELS[f]}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>`;
+
+const sEl = document.getElementById("summary");
+sEl.className = "summary " + (fail===0?"pass":"fail");
+sEl.textContent = fail===0 ? `✓ All ${pass} engine tests passed.` : `✗ ${fail} of ${pass+fail} tests FAILED.`;
+document.title = (fail===0?"PASS ":"FAIL ") + pass + "/" + (pass+fail) + " — Vita self-test";
+</script>
+</body>
+</html>

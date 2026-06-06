@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<!-- Security-first: this CSP makes it impossible for the app to contact any
+     network (connect-src 'none'), load any external script/style/image, or be
+     framed. The app is fully self-contained and local-only by enforcement,
+     not just by convention. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: 'self'; manifest-src 'self'; worker-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#1FA97E" />
+<meta name="description" content="Vita — your personal health assistant. Personalized daily health requirements based on your body, budget, and where you live. Works offline, no account, your data stays on your device." />
+<link rel="manifest" href="manifest.json" />
+<title>Vita — Personal Health Assistant</title>
+<!-- Inline SVG favicon (data URI) — no external requests, security-first -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231FA97E'/%3E%3Cpath d='M32 48s-14-8.6-14-19a8 8 0 0 1 14-5.3A8 8 0 0 1 46 29c0 10.4-14 19-14 19z' fill='white'/%3E%3C/svg%3E" />
+<style>
+/* =========================================================================
+   VITA — Design tokens (calm teal-green wellness system, offline-safe)
+   ========================================================================= */
+:root {
+  --primary:#1FA97E; --primary-dark:#157A5C; --accent:#F5A623; --secondary:#5BC0BE;
+  --success:#2E9E6B; --warning:#E6A100; --danger:#E0533D;
+  --background:#F4F7F6; --surface:#FFFFFF; --text-primary:#16302B; --text-muted:#6B7C77;
+  --border:#E1E8E5; --ring-track:#E1E8E5; --ring-fill:#1FA97E;
+  --primary-soft:rgba(31,169,126,0.08); --accent-soft:rgba(245,166,35,0.12);
+  --secondary-soft:rgba(91,192,190,0.10);
+
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; --space-6:32px; --space-7:48px;
+  --radius-sm:8px; --radius-md:14px; --radius-lg:24px; --radius-full:999px;
+  --shadow-sm:0 1px 2px rgba(22,48,43,.06), 0 2px 8px rgba(22,48,43,.05);
+  --shadow-md:0 4px 12px rgba(22,48,43,.08), 0 8px 24px rgba(22,48,43,.06);
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Helvetica Neue",sans-serif;
+}
+:root[data-theme="dark"] {
+  --primary:#2FC093; --primary-dark:#25A07A; --accent:#FFB740; --secondary:#4FB3B1;
+  --success:#3FB97F; --warning:#F2B33D; --danger:#F0705B;
+  --background:#0F1715; --surface:#182320; --text-primary:#ECF2EF; --text-muted:#93A39D;
+  --border:#26332F; --ring-track:#26332F; --ring-fill:#2FC093;
+  --primary-soft:rgba(47,192,147,0.12); --accent-soft:rgba(255,183,64,0.14);
+  --secondary-soft:rgba(79,179,177,0.12);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 6px 18px rgba(0,0,0,.4);
+}
+
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; padding:0; overflow-x:hidden; }
+/* Allow flex text containers to shrink & wrap instead of forcing overflow */
+.ci-body, .tip > div, .opt-body, .list-clean li span:first-child { min-width:0; overflow-wrap:break-word; }
+.rw-text { flex:1 1 auto; min-width:0; overflow-wrap:break-word; }
+body {
+  font-family:var(--font-sans); background:var(--background); color:var(--text-primary);
+  font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  overscroll-behavior-y:contain;
+}
+h1,h2,h3 { margin:0 0 var(--space-2); letter-spacing:-.01em; }
+h1 { font-size:1.75rem; font-weight:700; line-height:1.2; }
+h2 { font-size:1.375rem; font-weight:600; line-height:1.25; }
+h3 { font-size:1.125rem; font-weight:600; line-height:1.3; }
+p { margin:0 0 var(--space-3); }
+small,.small { font-size:.8125rem; font-weight:500; line-height:1.4; }
+.muted { color:var(--text-muted); }
+button { font-family:inherit; }
+:focus-visible { outline:none; box-shadow:0 0 0 3px rgba(31,169,126,.45); border-radius:var(--radius-sm); }
+
+/* App shell — phone column centered on desktop */
+#app { max-width:480px; margin:0 auto; min-height:100vh; min-height:100dvh; background:var(--background);
+  position:relative; box-shadow:var(--shadow-md); }
+@media (min-width:520px){ body{ padding:0; } #app{ min-height:100vh; } }
+
+/* Top app bar */
+.appbar { position:sticky; top:0; z-index:20; height:56px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 var(--space-4); background:var(--surface); border-bottom:1px solid transparent; transition:border-color .2s;
+  padding-top:env(safe-area-inset-top); }
+.appbar.scrolled { border-bottom-color:var(--border); }
+.appbar h2 { margin:0; }
+.iconbtn { width:44px; height:44px; display:grid; place-items:center; border:none; background:transparent; color:var(--text-primary);
+  border-radius:var(--radius-full); cursor:pointer; transition:background .15s; }
+.iconbtn:active { background:var(--primary-soft); }
+.iconbtn svg { width:24px; height:24px; }
+
+/* Page area */
+.page { padding:var(--space-4) var(--space-4) 96px; display:none; animation:fade .24s ease; }
+.page.active { display:block; }
+@keyframes fade { from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+/* Cards */
+.card { background:var(--surface); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:var(--shadow-sm);
+  margin-bottom:var(--space-3); }
+.card.flat { box-shadow:none; border:1px solid var(--border); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--space-2); width:100%; height:52px;
+  border-radius:var(--radius-md); font-size:1rem; font-weight:600; border:none; cursor:pointer;
+  background:var(--primary); color:#fff; box-shadow:var(--shadow-sm); transition:transform .12s ease, box-shadow .12s, background .15s; padding:0 24px; }
+.btn:hover { background:var(--primary-dark); }
+.btn:active { transform:scale(.98); box-shadow:none; }
+.btn:disabled { opacity:.4; box-shadow:none; cursor:not-allowed; }
+.btn.secondary { background:transparent; color:var(--primary); border:1.5px solid var(--primary); box-shadow:none; }
+.btn.secondary:active { background:var(--primary-soft); }
+.btn.ghost { background:transparent; color:var(--primary); box-shadow:none; width:auto; height:44px; padding:0 var(--space-3); }
+.btn.danger { background:transparent; color:var(--danger); border:1.5px solid var(--danger); box-shadow:none; }
+.btn.sm { height:40px; font-size:.9rem; width:auto; padding:0 var(--space-4); }
+
+/* Inputs */
+.field { margin-bottom:var(--space-4); }
+.field label { display:block; font-size:.8125rem; font-weight:600; color:var(--text-muted); margin-bottom:var(--space-2);
+  text-transform:uppercase; letter-spacing:.02em; }
+.input, select.input { width:100%; height:52px; border-radius:var(--radius-sm); border:1.5px solid var(--border);
+  background:var(--surface); color:var(--text-primary); padding:0 var(--space-4); font-size:16px; font-family:inherit; }
+.input:focus, select.input:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(31,169,126,.15); }
+.row2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3); }
+.suffix-wrap { position:relative; }
+.suffix-wrap .suffix { position:absolute; right:var(--space-4); top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:.9rem; pointer-events:none; }
+
+/* Option cards (selectable) */
+.options { display:flex; flex-direction:column; gap:var(--space-3); }
+.opt { display:flex; align-items:center; gap:var(--space-3); width:100%; text-align:left; min-height:64px;
+  border:1.5px solid var(--border); background:var(--surface); border-radius:var(--radius-md); padding:var(--space-4);
+  cursor:pointer; transition:border-color .16s, background .16s, transform .16s; color:var(--text-primary); }
+.opt:active { transform:scale(.99); }
+.opt[aria-pressed="true"] { border-color:var(--primary); border-width:2px; background:var(--primary-soft); }
+.opt .opt-ico { width:40px; height:40px; flex:none; border-radius:var(--radius-sm); display:grid; place-items:center;
+  background:var(--primary-soft); font-size:22px; }
+.opt[aria-pressed="true"] .opt-ico { animation:pop .25s ease; }
+.opt .opt-body { flex:1; }
+.opt .opt-title { font-weight:600; }
+.opt .opt-sub { font-size:.8125rem; color:var(--text-muted); }
+.opt .opt-check { width:22px; height:22px; flex:none; color:var(--primary); opacity:0; transition:opacity .16s; }
+.opt[aria-pressed="true"] .opt-check { opacity:1; }
+@keyframes pop { 0%{transform:scale(1);} 50%{transform:scale(1.14);} 100%{transform:scale(1);} }
+
+/* Sliders */
+.slider-field { margin-bottom:var(--space-5); }
+.slider-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:var(--space-2); }
+.slider-val { font-weight:700; color:var(--primary); }
+input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:8px; border-radius:var(--radius-full);
+  background:var(--ring-track); outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:26px; height:26px; border-radius:50%;
+  background:var(--primary); cursor:pointer; box-shadow:var(--shadow-sm); border:3px solid var(--surface); }
+input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--primary);
+  cursor:pointer; border:3px solid var(--surface); }
+
+/* Bottom tab nav */
+.tabbar { position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:480px; z-index:30;
+  height:calc(64px + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom);
+  display:flex; background:var(--surface); border-top:1px solid var(--border); }
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-size:11px; font-weight:600; }
+.tab svg { width:24px; height:24px; }
+.tab[aria-selected="true"] { color:var(--primary); }
+.tab.hidden { display:none; }
+
+/* Progress ring */
+.ring-wrap { display:flex; align-items:center; gap:var(--space-5); }
+.ring { position:relative; width:120px; height:120px; flex:none; }
+.ring svg { transform:rotate(-90deg); }
+.ring .track { stroke:var(--ring-track); }
+.ring .fill { stroke:var(--ring-fill); stroke-linecap:round; transition:stroke-dashoffset .6s cubic-bezier(.22,1,.36,1); }
+.ring .center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.ring .center b { font-size:1.6rem; line-height:1; }
+.ring .center span { font-size:.75rem; color:var(--text-muted); }
+
+/* Streak pill */
+.pill { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:var(--radius-full);
+  background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:.9rem; }
+
+/* Checklist */
+.check-item { display:flex; align-items:flex-start; gap:var(--space-3); padding:var(--space-4); min-height:56px;
+  background:var(--surface); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); margin-bottom:var(--space-3);
+  cursor:pointer; transition:background .2s, transform .12s; }
+.check-item:active { transform:scale(.99); }
+.check-box { width:28px; height:28px; flex:none; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center;
+  transition:background .15s, border-color .15s; margin-top:2px; }
+.check-box svg { width:16px; height:16px; color:#fff; stroke-dasharray:24; stroke-dashoffset:24; transition:stroke-dashoffset .2s ease-out; }
+.check-item.done .check-box { background:var(--success); border-color:var(--success); animation:pop .25s ease; }
+.check-item.done .check-box svg { stroke-dashoffset:0; }
+.check-item.done { background:var(--primary-soft); }
+.check-item.done .ci-title { color:var(--text-muted); text-decoration:line-through; }
+.ci-body { flex:1; }
+.ci-title { font-weight:600; }
+.ci-target { font-size:.8125rem; color:var(--text-muted); }
+.ci-cat { font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; font-weight:700; color:var(--secondary); }
+
+/* Tip card */
+.tip { background:var(--secondary-soft); border-radius:var(--radius-lg); padding:var(--space-5); display:flex; gap:var(--space-3);
+  margin-bottom:var(--space-3); }
+.tip .tip-ico { font-size:24px; flex:none; }
+.tip h3 { margin-bottom:4px; }
+.tip p { margin:0; font-size:.92rem; }
+
+/* Stat grid */
+.stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3); margin-bottom:var(--space-3); }
+.stat { background:var(--surface); border-radius:var(--radius-md); padding:var(--space-4); box-shadow:var(--shadow-sm); }
+.stat b { font-size:1.5rem; color:var(--primary); display:block; }
+.stat span { font-size:.8125rem; color:var(--text-muted); }
+
+/* Segmented control */
+.segmented { display:flex; background:var(--background); border-radius:var(--radius-full); padding:4px; gap:4px; }
+.segmented button { flex:1; border:none; background:transparent; color:var(--text-muted); font-weight:600; font-size:.9rem;
+  padding:8px; border-radius:var(--radius-full); cursor:pointer; transition:all .15s; }
+.segmented button[aria-pressed="true"] { background:var(--surface); color:var(--text-primary); box-shadow:var(--shadow-sm); }
+
+/* Section label */
+.section-label { font-size:.8125rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted);
+  margin:var(--space-5) 0 var(--space-3); }
+.section-label:first-child { margin-top:0; }
+
+/* Onboarding overlay */
+#onboarding { position:fixed; inset:0; z-index:50; background:var(--background); display:none; flex-direction:column;
+  max-width:480px; margin:0 auto; }
+#onboarding.active { display:flex; }
+.ob-progress { height:4px; display:flex; gap:4px; padding:var(--space-4) var(--space-4) 0; }
+.ob-progress span { flex:1; height:4px; border-radius:var(--radius-full); background:var(--border); overflow:hidden; }
+.ob-progress span i { display:block; height:100%; width:0; background:var(--primary); transition:width .3s ease; }
+.ob-progress span.filled i { width:100%; }
+.ob-body { flex:1; overflow-y:auto; padding:var(--space-5) var(--space-4) var(--space-4); }
+.ob-step { display:none; animation:slideIn .24s ease; }
+.ob-step.active { display:block; }
+@keyframes slideIn { from{opacity:0; transform:translateX(12px);} to{opacity:1; transform:none;} }
+.ob-foot { padding:var(--space-4); padding-bottom:calc(var(--space-4) + env(safe-area-inset-bottom)); display:flex; gap:var(--space-3);
+  align-items:center; border-top:1px solid var(--border); background:var(--surface); }
+.ob-foot .btn { flex:1; }
+.hero-ico { width:72px; height:72px; border-radius:var(--radius-lg); background:var(--primary-soft); display:grid; place-items:center;
+  font-size:36px; margin-bottom:var(--space-4); }
+
+/* Disclaimer / alert */
+.alert { border-radius:var(--radius-md); padding:var(--space-4); margin-bottom:var(--space-3); font-size:.9rem; }
+.alert.warn { background:var(--accent-soft); color:var(--text-primary); border:1px solid var(--accent); }
+.alert.danger { background:rgba(224,83,61,.1); color:var(--text-primary); border:1px solid var(--danger); }
+.alert b { display:block; margin-bottom:4px; }
+
+/* Bar chart (weight trend) */
+.spark { width:100%; height:120px; }
+.spark .axis { stroke:var(--border); stroke-width:1; }
+.spark .line { fill:none; stroke:var(--primary); stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round; }
+.spark .dot { fill:var(--primary); }
+.spark .target { stroke:var(--accent); stroke-width:1.5; stroke-dasharray:4 4; fill:none; }
+
+/* Heatmap */
+.heat { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.heat .cell { aspect-ratio:1; border-radius:5px; background:var(--border); }
+.heat .cell.l1 { background:rgba(31,169,126,.35); }
+.heat .cell.l2 { background:rgba(31,169,126,.65); }
+.heat .cell.l3 { background:var(--primary); }
+.heat .cell.future { background:transparent; }
+
+/* Range bars (body composition) */
+.range-row { margin-bottom:var(--space-4); }
+.range-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+.range-head .rl { font-weight:600; font-size:.95rem; }
+.range-head .rv { font-weight:700; }
+.range-bar { position:relative; height:10px; border-radius:var(--radius-full); overflow:hidden; background:var(--border); }
+.range-bar .zone { position:absolute; top:0; bottom:0; }
+.range-bar .zone.normal { background:var(--primary-soft); }
+.range-marker { position:absolute; top:-3px; width:4px; height:16px; border-radius:2px; background:var(--text-primary);
+  transform:translateX(-50%); }
+.range-tag { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 8px; border-radius:var(--radius-full); }
+.range-tag.low { background:rgba(91,192,190,.18); color:var(--secondary); }
+.range-tag.normal { background:var(--primary-soft); color:var(--primary); }
+.range-tag.high { background:var(--accent-soft); color:var(--accent); }
+
+/* Meal plan */
+.meal { display:flex; gap:var(--space-3); padding:var(--space-3) 0; border-bottom:1px solid var(--border); }
+.meal:last-child { border-bottom:none; }
+.meal .meal-ico { font-size:22px; flex:none; width:32px; text-align:center; }
+.meal .meal-name { font-weight:600; }
+.meal .meal-foods { font-size:.85rem; color:var(--text-muted); }
+.meal .meal-kcal { font-size:.8rem; color:var(--primary); font-weight:700; white-space:nowrap; }
+
+/* Water quick-counter */
+.water-count { font-weight:700; font-size:1.1rem; }
+.water-bar { height:10px; border-radius:var(--radius-full); background:var(--ring-track); overflow:hidden; margin:12px 0; }
+.water-bar span { display:block; height:100%; background:var(--secondary); transition:width .45s cubic-bezier(.22,1,.36,1); }
+.water-btns { display:flex; gap:var(--space-3); }
+.water-btn { height:48px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:var(--surface);
+  color:var(--text-primary); font-size:1.05rem; font-weight:700; cursor:pointer; transition:transform .12s, background .15s; }
+.water-btn:active { transform:scale(.97); }
+.water-btn#water-minus { width:56px; flex:none; }
+.water-btn.add { flex:1; background:var(--secondary-soft); color:var(--secondary); border-color:transparent; }
+.water-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* misc */
+.center { text-align:center; }
+.mt { margin-top:var(--space-4); }
+.divider { height:1px; background:var(--border); margin:var(--space-4) 0; }
+.chiprow { display:flex; flex-wrap:wrap; gap:var(--space-2); }
+.chip { padding:6px 12px; border-radius:var(--radius-full); background:var(--background); border:1px solid var(--border);
+  font-size:.85rem; }
+.list-clean { list-style:none; padding:0; margin:0; }
+.list-clean li { padding:var(--space-2) 0; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; gap:var(--space-3); }
+.list-clean li:last-child { border-bottom:none; }
+.toast { position:fixed; left:50%; bottom:84px; transform:translateX(-50%) translateY(20px); background:var(--text-primary);
+  color:var(--background); padding:12px 18px; border-radius:var(--radius-full); font-size:.9rem; font-weight:600; opacity:0;
+  transition:all .25s; z-index:60; pointer-events:none; max-width:90%; text-align:center; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ===================== ONBOARDING ===================== -->
+  <div id="onboarding">
+    <div class="ob-progress" id="obProgress"></div>
+    <div class="ob-body" id="obBody"><!-- steps injected --></div>
+    <div class="ob-foot">
+      <button class="btn ghost" id="obBack" style="flex:0 0 auto; display:none;">Back</button>
+      <button class="btn" id="obNext">Continue</button>
+    </div>
+  </div>
+
+  <!-- ===================== MAIN APP ===================== -->
+  <header class="appbar" id="appbar">
+    <h2 id="barTitle">Today</h2>
+    <button class="iconbtn" id="themeToggle" aria-label="Toggle dark mode" title="Toggle theme">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </header>
+
+  <main>
+    <section class="page active" id="page-today" role="tabpanel" aria-labelledby="tab-today" tabindex="0"></section>
+    <section class="page" id="page-plan" role="tabpanel" aria-labelledby="tab-plan" tabindex="0"></section>
+    <section class="page" id="page-insights" role="tabpanel" aria-labelledby="tab-insights" tabindex="0"></section>
+    <section class="page" id="page-profile" role="tabpanel" aria-labelledby="tab-profile" tabindex="0"></section>
+  </main>
+
+  <nav class="tabbar" id="tabbar" role="tablist" aria-label="Main sections">
+    <button class="tab" id="tab-today" role="tab" aria-controls="page-today" aria-selected="true" data-tab="today">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3 8-8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Today</span>
+    </button>
+    <button class="tab" id="tab-plan" role="tab" aria-controls="page-plan" aria-selected="false" data-tab="plan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Plan</span>
+    </button>
+    <button class="tab" id="tab-insights" role="tab" aria-controls="page-insights" aria-selected="false" data-tab="insights">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 16l3-4 3 2 4-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Insights</span>
+    </button>
+    <button class="tab" id="tab-profile" role="tab" aria-controls="page-profile" aria-selected="false" data-tab="profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Profile</span>
+    </button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   VITA — Personal Health Assistant
+   100% offline, zero external dependencies. All data stays in localStorage.
+   NOT medical advice — educational wellness guidance only.
+   ========================================================================= */
+"use strict";
+
+/* ---------- Storage ---------- */
+const STORE = "vita_state_v1";
+const todayKey = () => new Date().toISOString().slice(0,10);
+
+function loadState(){
+  try { return JSON.parse(localStorage.getItem(STORE)) || null; }
+  catch(e){ return null; }
+}
+function saveState(){ localStorage.setItem(STORE, JSON.stringify(state)); }
+
+let state = loadState();
+
+/* ---------- Sample profile (generic demo data — not a real person) ---------- */
+const INBODY_PRESET = {
+  name:"", sex:"male", age:25, height:175, weight:66, bodyFat:14,
+  activity:"moderate", feelings:{energy:6, sleep:6, stress:4},
+  inbody:{ smm:31, tbw:41, protein:11.2, minerals:3.7, bodyFatMass:9.2, bmr:1600, score:78, target:70, visceralFat:4 }
+};
+
+/* InBody normal ranges (from the InBody 270 report) for the composition view */
+const INBODY_RANGES = {
+  weight:   {label:"Weight",            unit:"kg", get:(p)=>p.weight,            min:59.2, max:80.2},
+  smm:      {label:"Skeletal muscle",   unit:"kg", get:(p)=>p.inbody&&p.inbody.smm,      min:25.7, max:31.5},
+  bodyFat:  {label:"Body fat mass",     unit:"kg", get:(p)=>p.inbody&&p.inbody.bodyFatMass!=null?p.inbody.bodyFatMass:(p.bodyFat&&p.weight?+(p.weight*p.bodyFat/100).toFixed(1):null), min:8.4, max:16.7},
+  tbw:      {label:"Total body water",  unit:"L",  get:(p)=>p.inbody&&p.inbody.tbw,      min:39.2, max:47.8},
+  protein:  {label:"Protein",           unit:"kg", get:(p)=>p.inbody&&p.inbody.protein,  min:10.5, max:12.9},
+  minerals: {label:"Minerals",          unit:"kg", get:(p)=>p.inbody&&p.inbody.minerals, min:3.63, max:4.43}
+};
+
+/* =========================================================================
+   HEALTH ENGINE  (validated against clinical-nutrition expert guidance)
+   ========================================================================= */
+const ACTIVITY = { sedentary:1.2, light:1.375, moderate:1.55, very:1.725, athlete:1.9 };
+const ACTIVITY_LABEL = { sedentary:"Sedentary", light:"Light (1–3 d/wk)", moderate:"Moderate (3–5 d/wk)", very:"Very active (6–7 d/wk)", athlete:"Athlete (2×/day)" };
+
+function bmi(kg, cm){ const m=cm/100; return kg/(m*m); }
+
+function mifflinBMR({weight,height,age,sex}){
+  const base = 10*weight + 6.25*height - 5*age;
+  return Math.round(base + (sex==="male" ? 5 : -161));
+}
+
+// PBF healthy bands by sex
+function pbfBand(pbf, sex){
+  if(pbf==null) return null;
+  if(sex==="male") return pbf<10?"low":pbf>25?"obese":pbf>20?"high":"healthy";
+  return pbf<18?"low":pbf>32?"obese":pbf>28?"high":"healthy";
+}
+
+// Auto goal detection — BMI or low body-fat routes underweight/lean users to GAIN
+function detectGoal(p){
+  const b = bmi(p.weight, p.height);
+  const band = pbfBand(p.bodyFat, p.sex);
+  if(b < 18.5 || band==="low") return "gain";
+  if(b >= 30 || band==="obese") return "lose";
+  if(b >= 25 && band==="high") return "lose";
+  if(b >= 25) return "maintain";      // muscular / healthy fat
+  return "maintain";
+}
+
+const GOAL_META = {
+  gain:    { label:"Gain healthy weight & build muscle", icon:"🌱", calAdj:+0.15, weekly:"+0.25–0.5 kg/wk",
+             protein:[1.6,2.2], fat:[0.8,1.0] },
+  maintain:{ label:"Maintain & stay strong", icon:"⚖️", calAdj:0, weekly:"±0",
+             protein:[1.4,1.8], fat:[0.8,1.0] },
+  lose:    { label:"Lose fat, keep muscle", icon:"🔥", calAdj:-0.18, weekly:"−0.5–0.75 kg/wk",
+             protein:[1.8,2.4], fat:[0.6,0.8] }
+}
+
+function compute(p){
+  const b = bmi(p.weight, p.height);
+  const bmr = mifflinBMR(p);
+  const tdee = Math.round(bmr * (ACTIVITY[p.activity]||1.55));
+  const goal = p.goalOverride || detectGoal(p);
+  const gm = GOAL_META[goal];
+  const calories = Math.round(tdee * (1 + gm.calAdj));
+  // protein/fat from g/kg midpoint, carbs as remainder
+  const proteinG = Math.round(p.weight * (gm.protein[0]+gm.protein[1])/2);
+  const fatG = Math.round(p.weight * (gm.fat[0]+gm.fat[1])/2);
+  const carbG = Math.max(0, Math.round((calories - proteinG*4 - fatG*9)/4));
+  // hydration: 35 ml/kg + climate
+  let hydration = p.weight * 35;
+  if(p.climate==="hot") hydration += 750;
+  if(p.climate==="cold") hydration += 0; // baseline but reminders matter
+  hydration = Math.round(hydration/50)*50;
+  return { bmi:b, bmr, tdee, goal, gm, calories, proteinG, fatG, carbG, hydration,
+           pbfBand:pbfBand(p.bodyFat,p.sex) };
+}
+
+/* ---------- Red-flag safety screen ---------- */
+function redFlags(p){
+  const flags=[]; const b=bmi(p.weight,p.height);
+  if(p.age < 18) flags.push("You're under 18 — growth-stage nutrition is different. Please work with a pediatrician or registered dietitian rather than following automated targets.");
+  if(b < 16) flags.push("Your BMI is in the severely underweight range (<16). Please see a doctor before changing your diet or exercise.");
+  if(b >= 35) flags.push("Your BMI is in a range where personalized medical supervision is strongly recommended. Please consult a clinician.");
+  if(p.feelings && p.feelings.energy<=2 && p.feelings.sleep<=2) flags.push("You reported very low energy and sleep. Persistent exhaustion can signal an underlying issue worth discussing with a doctor.");
+  return flags;
+}
+
+/* =========================================================================
+   CHECKLIST GENERATOR — daily requirements per goal, tuned by budget/climate
+   ========================================================================= */
+function buildChecklist(p, c){
+  const L = []; // {id, cat, title, target}
+  const water = (c.hydration/1000).toFixed(1);
+  const mealCount = c.goal==="gain" ? "4–5" : "3–4";
+
+  // Nutrition + protein
+  if(c.goal==="gain"){
+    L.push({id:"cal", cat:"Nutrition", title:"Hit your calorie surplus", target:`≈ ${c.calories} kcal across ${mealCount} meals — don't skip any`});
+    L.push({id:"snack", cat:"Nutrition", title:"Add one calorie-dense snack", target:"Nuts, nut butter, dried fruit, or a whole-milk smoothie"});
+  } else if(c.goal==="lose"){
+    L.push({id:"cal", cat:"Nutrition", title:"Stay in your calorie target", target:`≈ ${c.calories} kcal — high-volume, high-fiber foods`});
+    L.push({id:"fiber", cat:"Nutrition", title:"Get 25–35 g fiber", target:"Veg, legumes, whole grains — keeps you full"});
+  } else {
+    L.push({id:"cal", cat:"Nutrition", title:"Eat to your target", target:`≈ ${c.calories} kcal — balanced plate (½ veg, ¼ protein, ¼ carbs)`});
+  }
+  L.push({id:"protein", cat:"Protein", title:`Reach ${c.proteinG} g protein`, target:`Spread across meals (~${Math.round(c.proteinG/ (c.goal==="gain"?5:4))} g each)`});
+
+  // Hydration
+  L.push({id:"water", cat:"Hydration", title:`Drink ${water} L of water`, target: p.climate==="hot" ? "Extra for heat — add electrolytes if sweating >1 h" : p.climate==="cold" ? "Thirst is blunted in cold — sip on a schedule" : "Spread through the day"});
+
+  // Training
+  if(c.goal==="gain"){
+    L.push({id:"train", cat:"Movement", title:"Resistance training (progressive overload)", target:"4–5×/week — add a little load or reps each week"});
+    L.push({id:"creatine", cat:"Movement", title:"Creatine monohydrate (optional)", target:"3–5 g/day — evidence-backed for lean gain"});
+  } else if(c.goal==="lose"){
+    L.push({id:"train", cat:"Movement", title:"Resistance training", target:"3–4×/week to keep muscle while losing fat"});
+    L.push({id:"steps", cat:"Movement", title:"8,000–12,000 steps", target:"Plus 2–3 Zone-2 cardio sessions/week"});
+  } else {
+    L.push({id:"train", cat:"Movement", title:"Move your body", target:"3× resistance + 2× cardio; 7–10k steps/day"});
+  }
+  L.push({id:"mobility", cat:"Movement", title:"10 min mobility / stretch", target:"Especially on training days"});
+
+  // Sleep + recovery + mind
+  L.push({id:"sleep", cat:"Recovery", title:"Sleep 7.5–9 hours", target: c.goal==="gain" ? "Muscle is built during recovery" : "Protects appetite hormones & mood"});
+  if(p.feelings && p.feelings.stress>=7) L.push({id:"calm", cat:"Mind", title:"5-min breathing / wind-down", target:"You flagged high stress — small resets help"});
+
+  // Weekly
+  L.push({id:"weighin", cat:"Weekly", title:"Weekly weigh-in", target:`Same time & conditions — aim ${c.gm.weekly}`});
+
+  return L;
+}
+
+/* ---------- Budget-tiered, goal-aware food suggestions ---------- */
+const FOODS = {
+  low:{
+    title:"Budget-friendly powerhouses",
+    items:["Eggs — cheapest complete protein","Whole or powdered milk — calorie + protein dense","Dried beans, lentils, chickpeas","Peanut butter & peanuts","Oats (blend into shakes)","Rice, potatoes, bananas","Canned tuna / sardines (omega-3)","Bulk whey protein — cheapest $/g supplement"]
+  },
+  medium:{
+    title:"Balanced value picks",
+    items:["Chicken thighs/breast, ground beef","Greek yogurt, cottage cheese","Frozen mixed veg & berries","Olive oil, mixed nuts, trail mix","Tofu / tempeh / edamame","Whole-grain pasta, sweet potatoes"]
+  },
+  high:{
+    title:"Premium nutrient-dense",
+    items:["Salmon, steak, fresh fish","Grass-fed dairy & aged cheese","Macadamias, almonds, cashews","Avocados & specialty nut butters","Quality mass-gainer shakes","Wide fresh-produce variety"]
+  }
+};
+
+/* ---------- Sample one-day meal plan (budget + goal aware) ---------- */
+const PROTEIN_SRC = {
+  low:["eggs","whole milk","lentils","canned tuna","peanut butter","bulk whey"],
+  medium:["chicken","Greek yogurt","ground beef","cottage cheese","tofu","whey"],
+  high:["salmon","steak","grass-fed dairy","fresh fish","quality whey","skyr"]
+};
+const CARB_SRC = {
+  low:["oats","rice","potatoes","bananas","bread"],
+  medium:["sweet potato","whole-grain pasta","oats","rice","fruit"],
+  high:["sourdough","quinoa","sweet potato","fresh fruit","oats"]
+};
+function sampleMealPlan(p, c){
+  const ps = PROTEIN_SRC[p.budget]||PROTEIN_SRC.medium;
+  const cs = CARB_SRC[p.budget]||CARB_SRC.medium;
+  const gain = c.goal==="gain", lose = c.goal==="lose";
+  // meal templates; kcal split sums to ~target
+  const meals = gain ? [
+    {ico:"🌅", name:"Big breakfast", foods:`${cap(cs[0])} + ${ps[1]} + ${ps[4]||"nut butter"} + banana`, frac:.22},
+    {ico:"🥪", name:"Mid-morning", foods:`${cap(ps[0])} + ${cs[4]||"bread"}`, frac:.13},
+    {ico:"🍽️", name:"Lunch", foods:`${cap(cs[1])} + ${ps[3]||ps[0]} + olive oil + veg`, frac:.25},
+    {ico:"🥤", name:"Mass smoothie", foods:`${cap(ps[1])} + ${cs[0]} + ${ps[5]||"whey"} + ${ps[4]||"nut butter"}`, frac:.16},
+    {ico:"🌙", name:"Dinner", foods:`${cap(ps[2]||ps[0])} + ${cs[2]||cs[1]} + greens`, frac:.24}
+  ] : lose ? [
+    {ico:"🌅", name:"Breakfast", foods:`${cap(ps[1])} + berries + ${cs[2]||"oats"} (small)`, frac:.25},
+    {ico:"🍽️", name:"Lunch", foods:`${cap(ps[0])} + big salad + ${cs[1]}`, frac:.32},
+    {ico:"🍎", name:"Snack", foods:`${cap(ps[3]||ps[0])} + fruit / veg sticks`, frac:.13},
+    {ico:"🌙", name:"Dinner", foods:`${cap(ps[2]||ps[0])} + lots of veg + small ${cs[0]}`, frac:.30}
+  ] : [
+    {ico:"🌅", name:"Breakfast", foods:`${cap(cs[0])} + ${ps[1]} + fruit`, frac:.27},
+    {ico:"🍽️", name:"Lunch", foods:`${cap(ps[0])} + ${cs[1]} + veg`, frac:.34},
+    {ico:"🍎", name:"Snack", foods:`${cap(ps[3]||ps[0])} + nuts`, frac:.12},
+    {ico:"🌙", name:"Dinner", foods:`${cap(ps[2]||ps[0])} + ${cs[2]||cs[1]} + greens`, frac:.27}
+  ];
+  return meals.map(m=>({...m, kcal:Math.round(c.calories*m.frac/10)*10, protein:Math.round(c.proteinG*m.frac)}));
+}
+
+/* =========================================================================
+   TIPS
+   ========================================================================= */
+const TIPS = {
+  gain:[
+    {t:"Liquid calories win", b:"Hard to eat enough? Blend whole milk + oats + peanut butter + banana + whey. ~700 kcal you can drink without feeling stuffed."},
+    {t:"Eat on a clock", b:"Underweight bodies often under-eat from low appetite, not choice. Set meal alarms — consistency beats willpower."},
+    {t:"Patience is the plan", b:"Aim for slow, mostly-lean gain (~0.25–0.5 kg/wk). A big InBody target is a 12–18 month journey, not a sprint."},
+    {t:"Train, don't just eat", b:"A surplus without resistance training adds mostly fat. Lift 4–5×/week so the extra calories build muscle."},
+    {t:"Add, don't replace", b:"Bolt calories onto meals you already eat — a handful of nuts, a drizzle of olive oil, an extra scoop of rice. Easier than forcing a whole new meal."},
+    {t:"Progressive overload", b:"Each week aim to add a little weight or a rep. Steady progression on the bar is what tells your body to build new muscle."},
+    {t:"Don't fear the rest day", b:"Muscle grows between sessions, not during them. 7.5–9 h sleep and full rest days are part of the program, not a break from it."},
+    {t:"Track to believe it", b:"On low-appetite days you'll swear you ate enough when you didn't. A few days of logging shows the real gap to your surplus."}
+  ],
+  lose:[
+    {t:"Protein protects muscle", b:"In a deficit, high protein (1.8–2.4 g/kg) keeps your hard-earned muscle and keeps you full."},
+    {t:"Drink before you eat", b:"A glass of water before meals reduces accidental over-eating — thirst masquerades as hunger."},
+    {t:"Lift to keep the engine", b:"Cardio burns calories today; resistance training keeps your metabolism high tomorrow."},
+    {t:"Volume over density", b:"Fill the plate with vegetables and lean protein — high volume, low calories. You eat more and feel fuller for the same energy."},
+    {t:"Steps are silent cardio", b:"A daily walk target (8–12k steps) burns meaningful calories without the recovery cost of hard cardio."},
+    {t:"Plateaus are normal", b:"Weight drops in steps, not a smooth line. Hold the course for 2–3 weeks before changing anything; water shifts hide real fat loss."},
+    {t:"Slow is sustainable", b:"Aim for ~0.5–0.75 kg/week. Faster loss costs you muscle and rarely sticks."}
+  ],
+  maintain:[
+    {t:"Consistency compounds", b:"Maintenance is a skill. Small daily habits beat dramatic resets every time."},
+    {t:"Strength is longevity", b:"Keep lifting — muscle mass is one of the best predictors of healthy aging."},
+    {t:"Mind the drift", b:"Maintenance isn't autopilot. A weekly weigh-in catches slow drift early, while it's a 1 kg fix and not a 5 kg one."},
+    {t:"Train for life, not looks", b:"Mix strength, a little cardio, and mobility. The goal is a body that moves well and feels good for decades."},
+    {t:"Protein still matters", b:"Even at maintenance, 1.4–1.8 g/kg protein supports muscle, recovery, and steady appetite."}
+  ],
+  general:[
+    {t:"Hydration is a quiet superpower", b:"Even mild dehydration saps energy, focus, and training quality. Keep a bottle visible — out of sight is out of mind."},
+    {t:"Sleep is the cheat code", b:"Nothing else on this list works well on 5 hours. Protect a consistent bedtime; it improves appetite, mood, and recovery at once."},
+    {t:"Eat well on any budget", b:"Eggs, oats, beans, frozen veg, and bulk whey deliver elite nutrition for very little. Healthy doesn't have to be expensive."},
+    {t:"Cook once, eat thrice", b:"Batch-cook a protein and a grain on a free day. Future-you makes far better choices when good food is already in the fridge."},
+    {t:"Don't break the chain", b:"Missing one day means nothing; missing the day after is what hurts. Aim to never skip twice in a row."},
+    {t:"Move every hour", b:"Long sitting blunts the benefits of a single workout. A 2-minute stand-and-stretch each hour adds up quietly."},
+    {t:"Progress isn't linear", b:"Energy, weight, and motivation all wobble day to day. Judge yourself on the weekly trend, not any single morning."}
+  ]
+};
+function tipFor(goal, day){
+  const pool = (TIPS[goal]||TIPS.maintain).concat(TIPS.general);
+  return pool[((day % pool.length)+pool.length) % pool.length];
+}
+
+/* ---------- Climate copy ---------- */
+const CLIMATE_NOTE = {
+  hot:"Hot climate: hydrate more (target already raised), train early morning or evening, watch for heat illness, replace electrolytes after long sweat sessions.",
+  temperate:"Temperate climate: standard hydration and training timing — you've got flexibility.",
+  cold:"Cold climate: thirst is suppressed, so drink on a schedule; warm up longer before training; warm fluids and indoor options help consistency."
+};
+const AREA_NOTE = {
+  urban:"Urban: lots of food variety and gyms, but it costs more — batch-cook and watch portions of convenience food.",
+  rural:"Rural: lean on shelf-stable staples (oats, beans, eggs, milk powder, canned fish), buy in bulk, and use bodyweight / minimal-equipment training plus incidental daily activity."
+};
+
+/* =========================================================================
+   PROGRESS / STREAK
+   ========================================================================= */
+function ensureToday(){
+  if(!state.progress) state.progress={};
+  const k=todayKey();
+  if(!state.progress[k]) state.progress[k]={};
+  return state.progress[k];
+}
+function dayCompletion(k){
+  const p=state.progress && state.progress[k]; if(!p) return 0;
+  const total = state.checklist.length; if(!total) return 0;
+  // count only real checklist items (ignore non-task keys like waterGlasses)
+  const done = state.checklist.filter(it=>p[it.id]).length;
+  return done/total;
+}
+const GLASS_ML = 250;
+function waterTarget(){ const c=compute(state.profile); return Math.max(1, Math.round(c.hydration/GLASS_ML)); }
+function streak(){
+  let s=0; const d=new Date();
+  for(;;){
+    const k=d.toISOString().slice(0,10);
+    if(dayCompletion(k) >= 0.6){ s++; d.setDate(d.getDate()-1); }
+    else { // today not yet done shouldn't break streak
+      if(k===todayKey()){ d.setDate(d.getDate()-1); continue; }
+      break;
+    }
+  }
+  return s;
+}
+
+/* =========================================================================
+   RENDERING
+   ========================================================================= */
+const $ = (s,el=document)=>el.querySelector(s);
+const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+function esc(x){ return String(x).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m])); }
+
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+function ringSVG(pct){
+  const r=52, c=2*Math.PI*r, off=c*(1-pct);
+  return `<div class="ring"><svg width="120" height="120" viewBox="0 0 120 120">
+    <circle class="track" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"/>
+    <circle class="fill" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>
+  </svg><div class="center"><b>${Math.round(pct*100)}%</b><span>done today</span></div></div>`;
+}
+
+function renderToday(){
+  const c = compute(state.profile);
+  const today = ensureToday();
+  today.water = (today.waterGlasses||0) >= waterTarget();   // water requirement is derived from glasses
+  const pct = dayCompletion(todayKey());
+  const flags = redFlags(state.profile);
+  const dayIdx = Math.floor(Date.now()/86400000);
+  const tip = tipFor(c.goal, dayIdx);
+  const firstName = state.profile.name ? esc(state.profile.name.split(" ")[0]) : "there";
+  const hr = new Date().getHours();
+  const greet = hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";
+
+  let html = `<p class="muted" style="margin-bottom:2px">${greet},</p><h1>${firstName} 👋</h1>`;
+
+  if(flags.length){
+    html += `<div class="alert danger"><b>⚠️ Please check with a professional</b>${flags.map(f=>`<div>• ${esc(f)}</div>`).join("")}</div>`;
+  }
+
+  const doneCount = state.checklist.filter(it=>today[it.id]).length;
+  html += `<div class="card"><div class="ring-wrap">${ringSVG(pct)}
+    <div class="rw-text"><div class="pill">🔥 ${streak()} day streak</div>
+    <p style="margin:10px 0 0; font-weight:600">${c.gm.icon} ${c.gm.label}</p>
+    <p class="small muted" style="margin:2px 0 0">${doneCount}/${state.checklist.length} requirements complete</p></div></div></div>`;
+
+  // Water quick-counter
+  const wTarget = waterTarget();
+  const glasses = Math.min(wTarget, today.waterGlasses||0);
+  const litres = (glasses*GLASS_ML/1000).toFixed(1);
+  const targetL = (c.hydration/1000).toFixed(1);
+  const wPct = Math.round(glasses/wTarget*100);
+  html += `<div class="card water-card">
+    <div class="ci-cat" style="color:var(--secondary)">Hydration</div>
+    <div class="water-count">💧 ${glasses} / ${wTarget} glasses</div>
+    <div class="ci-target">${litres} of ${targetL} L · one glass = ${GLASS_ML} ml</div>
+    <div class="water-bar"><span style="width:${wPct}%"></span></div>
+    <div class="water-btns">
+      <button class="water-btn" id="water-minus" aria-label="Remove a glass" ${glasses<=0?"disabled":""}>−</button>
+      <button class="water-btn add" id="water-plus" aria-label="Add a glass" ${glasses>=wTarget?"disabled":""}>${glasses>=wTarget?"Goal reached 🎉":"+ Add a glass"}</button>
+    </div></div>`;
+
+  html += `<div class="section-label">Today's requirements</div>`;
+  html += state.checklist.filter(item=>item.id!=="water").map(item=>{
+    const done = !!today[item.id];
+    return `<div class="check-item ${done?"done":""}" data-id="${item.id}" role="button" tabindex="0" aria-pressed="${done}" aria-label="${esc(item.title)}">
+      <div class="check-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="ci-body"><div class="ci-cat">${item.cat}</div><div class="ci-title">${esc(item.title)}</div>
+      <div class="ci-target">${esc(item.target)}</div></div></div>`;
+  }).join("");
+
+  html += `<div class="tip"><div class="tip-ico">💡</div><div><h3>${esc(tip.t)}</h3><p>${esc(tip.b)}</p></div></div>`;
+  html += `<p class="small muted center mt">Educational guidance, not medical advice.</p>`;
+
+  $("#page-today").innerHTML = html;
+  // checklist toggles (mouse + keyboard)
+  $$("#page-today .check-item").forEach(el=>{
+    const toggle=()=>{ const id=el.dataset.id; const t=ensureToday(); t[id]=!t[id]; saveState(); renderToday(); };
+    el.addEventListener("click",toggle);
+    el.addEventListener("keydown",(e)=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); toggle(); } });
+  });
+  // water counter
+  const setGlasses=(n)=>{
+    const t=ensureToday(); const tgt=waterTarget();
+    n=Math.max(0, Math.min(tgt, n));
+    const wasBelow=(t.waterGlasses||0)<tgt;
+    t.waterGlasses=n; t.water = n>=tgt;       // syncs the "water" requirement
+    saveState();
+    if(n>=tgt && wasBelow) toast("Hydration goal hit 💧");
+    renderToday();
+  };
+  $("#water-plus") && $("#water-plus").addEventListener("click",()=>setGlasses((ensureToday().waterGlasses||0)+1));
+  $("#water-minus") && $("#water-minus").addEventListener("click",()=>setGlasses((ensureToday().waterGlasses||0)-1));
+}
+
+function renderPlan(){
+  const c = compute(state.profile);
+  const p = state.profile;
+  const food = FOODS[p.budget] || FOODS.medium;
+
+  let html = `<h1>Your plan</h1><p class="muted">Tailored to your body, budget, and where you live. Re-take the assessment anytime in Profile.</p>
+  <button class="btn secondary sm" id="sharePlanBtn" style="margin-bottom:var(--space-2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" stroke-linecap="round"/></svg>
+    Share / copy my plan</button>`;
+
+  // Targets card
+  html += `<div class="section-label">Daily targets</div>
+  <div class="stat-grid">
+    <div class="stat"><b>${c.calories}</b><span>kcal / day</span></div>
+    <div class="stat"><b>${c.proteinG} g</b><span>protein</span></div>
+    <div class="stat"><b>${c.carbG} g</b><span>carbs</span></div>
+    <div class="stat"><b>${c.fatG} g</b><span>fat</span></div>
+    <div class="stat"><b>${(c.hydration/1000).toFixed(1)} L</b><span>water</span></div>
+    <div class="stat"><b>${c.bmi.toFixed(1)}</b><span>BMI</span></div>
+  </div>
+  <div class="card flat small"><b>How we got here</b><br>BMR ${c.bmr} kcal (Mifflin-St Jeor) × ${ACTIVITY[p.activity]} activity = TDEE ${c.tdee} kcal, adjusted for your goal (${c.gm.weekly}).</div>`;
+
+  // Requirements grouped
+  const cats = [...new Set(state.checklist.map(i=>i.cat))];
+  html += `<div class="section-label">Your requirements</div>`;
+  cats.forEach(cat=>{
+    html += `<div class="card"><h3>${cat}</h3><ul class="list-clean">`;
+    state.checklist.filter(i=>i.cat===cat).forEach(i=>{
+      html += `<li><span><b>${esc(i.title)}</b><br><span class="small muted">${esc(i.target)}</span></span></li>`;
+    });
+    html += `</ul></div>`;
+  });
+
+  // Food suggestions
+  html += `<div class="section-label">Eat well on your budget</div>
+    <div class="card"><h3>${food.title}</h3><div class="chiprow" style="margin-top:8px">
+    ${food.items.map(f=>`<span class="chip">${esc(f)}</span>`).join("")}</div>
+    ${c.goal==="gain"?`<p class="small muted mt">Tip: liquid calories (smoothies) are the easiest way to hit a surplus when appetite is low.</p>`:""}</div>`;
+
+  // Sample day
+  const meals = sampleMealPlan(p, c);
+  html += `<div class="section-label">A sample day (~${c.calories} kcal)</div><div class="card">`;
+  meals.forEach(m=>{
+    html += `<div class="meal"><span class="meal-ico">${m.ico}</span>
+      <div style="flex:1; min-width:0"><div class="meal-name">${esc(m.name)}</div><div class="meal-foods">${esc(m.foods)}</div></div>
+      <div style="text-align:right"><div class="meal-kcal">${m.kcal} kcal</div><div class="small muted">${m.protein}g P</div></div></div>`;
+  });
+  html += `<p class="small muted mt">A flexible template, not a prescription — swap foods you like from the list above. Portions scale to your target.</p></div>`;
+
+  // Climate / area
+  html += `<div class="section-label">Where you live</div>
+    <div class="tip"><div class="tip-ico">🌡️</div><div><h3>${cap(p.climate)} climate</h3><p>${esc(CLIMATE_NOTE[p.climate]||"")}</p></div></div>
+    <div class="tip"><div class="tip-ico">📍</div><div><h3>${cap(p.area)} area</h3><p>${esc(AREA_NOTE[p.area]||"")}</p></div></div>`;
+
+  $("#page-plan").innerHTML = html;
+  $("#sharePlanBtn") && $("#sharePlanBtn").addEventListener("click", sharePlan);
+}
+
+function renderInsights(){
+  const c = compute(state.profile);
+  let html = `<h1>Insights</h1>`;
+
+  // 7-day completion stats
+  const days=[]; const d=new Date();
+  for(let i=0;i<28;i++){ const k=d.toISOString().slice(0,10); days.unshift({k, v:dayCompletion(k)}); d.setDate(d.getDate()-1); }
+  const last7 = days.slice(-7);
+  const avg7 = Math.round(last7.reduce((a,b)=>a+b.v,0)/7*100);
+  const bestStreak = streak();
+
+  html += `<div class="stat-grid">
+    <div class="stat"><b>${avg7}%</b><span>7-day completion</span></div>
+    <div class="stat"><b>🔥 ${bestStreak}</b><span>day streak</span></div>
+  </div>`;
+
+  // Heatmap 28 days
+  html += `<div class="section-label">Last 4 weeks</div><div class="card"><div class="heat">`;
+  days.forEach(x=>{
+    const lvl = x.v>=0.9?"l3":x.v>=0.6?"l2":x.v>0?"l1":"";
+    html += `<div class="cell ${lvl}" title="${x.k}: ${Math.round(x.v*100)}%"></div>`;
+  });
+  html += `</div><p class="small muted mt">Each square is a day — greener means more requirements completed.</p></div>`;
+
+  // Body composition (when an InBody scan is loaded)
+  if(state.profile.inbody){ html += renderComposition(state.profile); }
+
+  // Weight trend
+  html += `<div class="section-label">Weight trend</div>`;
+  const log = state.weightLog||[];
+  if(log.length>=2){
+    html += `<div class="card">${sparkline(log, state.profile.inbody?state.profile.inbody.target:null)}</div>`;
+  } else {
+    html += `<div class="card flat"><p class="small muted">Log your weight (Profile → Log weight) a couple of times to see your trend and how you're tracking toward your target.</p></div>`;
+  }
+
+  // current vs target
+  if(state.profile.inbody && state.profile.inbody.target){
+    const target = state.profile.inbody.target;
+    const cur = log.length?log[log.length-1].kg:state.profile.weight;
+    const diffKg = target - cur;
+    const gapDisp = fmtWeight(Math.abs(diffKg));
+    const weeks = Math.max(1, Math.round(Math.abs(diffKg)/0.35));
+    const rate = units()==="imperial" ? "~0.8 lb/week" : "~0.35 kg/week";
+    html += `<div class="tip"><div class="tip-ico">🎯</div><div><h3>Target ${fmtWeight(target)}</h3>
+      <p>You're at ${fmtWeight(cur)} — ${diffKg>0?`${gapDisp} to gain`:`${gapDisp} above target`}. At a healthy ${rate} that's about ${weeks} weeks. Slow and steady keeps it lean.</p></div></div>`;
+  }
+
+  // Editable weight history
+  if(log.length){
+    const rows=[...log].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
+    html += `<div class="section-label">Weight history</div><div class="card"><ul class="list-clean" id="wlogList">`;
+    rows.forEach(e=>{
+      html += `<li><span class="muted">${fmtDate(e.date)}</span>
+        <span style="display:flex; gap:12px; align-items:center"><b>${fmtWeight(e.kg)}</b>
+        <button class="iconbtn wdel" data-date="${e.date}" aria-label="Delete entry from ${fmtDate(e.date)}" style="width:32px;height:32px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
+        </button></span></li>`;
+    });
+    html += `</ul>${log.length>14?`<p class="small muted">Showing the 14 most recent.</p>`:""}</div>`;
+  }
+
+  $("#page-insights").innerHTML = html;
+
+  // delete weight entries
+  $$("#page-insights .wdel").forEach(b=>b.addEventListener("click",(ev)=>{
+    ev.stopPropagation();
+    const d=b.dataset.date;
+    state.weightLog=(state.weightLog||[]).filter(x=>x.date!==d);
+    // keep profile.weight in sync with the most recent remaining entry
+    if(state.weightLog.length){
+      const latest=[...state.weightLog].sort((a,b)=>a.date.localeCompare(b.date)).pop();
+      state.profile.weight=latest.kg;
+    }
+    saveState(); toast("Entry removed"); renderAll();
+  }));
+}
+
+function renderComposition(p){
+  const ib = p.inbody;
+  let h = `<div class="section-label">Body composition</div>`;
+  // InBody score + key headline
+  if(ib.score!=null){
+    h += `<div class="stat-grid">
+      <div class="stat"><b>${ib.score}<span style="font-size:.9rem">/100</span></b><span>InBody score</span></div>
+      <div class="stat"><b>${ib.visceralFat!=null?ib.visceralFat:"—"}</b><span>Visceral fat level ${ib.visceralFat!=null&&ib.visceralFat<10?"(healthy)":""}</span></div>
+    </div>`;
+  }
+  h += `<div class="card">`;
+  Object.keys(INBODY_RANGES).forEach(k=>{
+    const r = INBODY_RANGES[k]; const v = r.get(p);
+    if(v==null) return;
+    // scale axis: 15% padding below min and above max
+    const span = r.max - r.min; const lo = r.min - span*0.6, hi = r.max + span*0.6;
+    const pct = x => Math.max(0, Math.min(100, (x-lo)/(hi-lo)*100));
+    const zoneL = pct(r.min), zoneW = pct(r.max)-pct(r.min);
+    const status = v < r.min ? "low" : v > r.max ? "high" : "normal";
+    h += `<div class="range-row">
+      <div class="range-head"><span class="rl">${r.label}</span>
+        <span><span class="rv">${v} ${r.unit}</span> <span class="range-tag ${status}">${status}</span></span></div>
+      <div class="range-bar"><span class="zone normal" style="left:${zoneL}%; width:${zoneW}%"></span>
+        <span class="range-marker" style="left:${pct(v)}%"></span></div>
+      <div class="range-head small muted" style="margin-top:4px"><span>${r.min}</span><span>normal</span><span>${r.max}</span></div>
+    </div>`;
+  });
+  h += `<p class="small muted">Shaded band = typical healthy range for your height &amp; sex. Any marker outside it is flagged Low or High, and your plan is tuned to nudge it back toward the band.</p></div>`;
+  return h;
+}
+
+function sparkline(log, target){
+  const w=440,h=120,pad=20;
+  const ws = log.slice(-12);
+  const ys = ws.map(p=>p.kg);
+  let min=Math.min(...ys), max=Math.max(...ys);
+  if(target){ min=Math.min(min,target); max=Math.max(max,target); }
+  if(max-min<2){ max+=1; min-=1; }
+  const X=i=> pad + (i*(w-2*pad)/Math.max(1,ws.length-1));
+  const Y=v=> h-pad - ((v-min)/(max-min))*(h-2*pad);
+  const pts = ws.map((p,i)=>`${X(i).toFixed(1)},${Y(p.kg).toFixed(1)}`).join(" ");
+  let tline="";
+  if(target){ const ty=Y(target).toFixed(1); tline=`<line class="target" x1="${pad}" y1="${ty}" x2="${w-pad}" y2="${ty}"/>`; }
+  const dots = ws.map((p,i)=>`<circle class="dot" cx="${X(i).toFixed(1)}" cy="${Y(p.kg).toFixed(1)}" r="3"/>`).join("");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    ${tline}<polyline class="line" points="${pts}"/>${dots}</svg>
+    <div class="small muted" style="display:flex;justify-content:space-between"><span>${fmtWeight(ws[0].kg)}</span><span>${fmtWeight(ws[ws.length-1].kg)}${target?` · 🎯 ${fmtWeight(target)}`:""}</span></div>`;
+}
+
+function renderProfile(){
+  const p=state.profile; const c=compute(p);
+  let html = `<h1>Profile</h1>`;
+  html += `<div class="card"><h3>${p.name?esc(p.name):"Your details"}</h3>
+    <ul class="list-clean">
+      <li><span class="muted">Goal</span><span>${c.gm.icon} ${cap(c.goal)}</span></li>
+      <li><span class="muted">Age / Sex</span><span>${p.age} · ${cap(p.sex)}</span></li>
+      <li><span class="muted">Height / Weight</span><span>${fmtHeight(p.height)} · ${fmtWeight(p.weight)}</span></li>
+      ${p.bodyFat?`<li><span class="muted">Body fat</span><span>${p.bodyFat}%</span></li>`:""}
+      <li><span class="muted">Activity</span><span>${ACTIVITY_LABEL[p.activity]}</span></li>
+      <li><span class="muted">Budget</span><span>${cap(p.budget)}</span></li>
+      <li><span class="muted">Climate / Area</span><span>${cap(p.climate)} · ${cap(p.area)}</span></li>
+    </ul></div>`;
+
+  // Log weight
+  const u=units();
+  const wPlace = u==="imperial" ? Math.round(kgToLb(p.weight)*10)/10 : p.weight;
+  html += `<div class="section-label">Log today's weight</div>
+    <div class="card"><div class="suffix-wrap"><input class="input" id="wlog" type="number" inputmode="decimal" step="0.1" placeholder="${wPlace}"><span class="suffix">${weightUnit(u)}</span></div>
+    <button class="btn mt" id="wlogBtn">Save weight</button></div>`;
+
+  // Appearance
+  html += `<div class="section-label">Appearance & units</div>
+    <div class="card"><label class="small muted" style="font-weight:600">Theme</label>
+    <div class="segmented mt" id="themeSeg">
+      <button data-theme="light" aria-pressed="${state.theme!=='dark'}">Light</button>
+      <button data-theme="dark" aria-pressed="${state.theme==='dark'}">Dark</button>
+    </div>
+    <label class="small muted mt" style="font-weight:600; display:block">Units</label>
+    <div class="segmented mt" id="unitSeg">
+      <button data-units="metric" aria-pressed="${u!=='imperial'}">Metric (kg, cm)</button>
+      <button data-units="imperial" aria-pressed="${u==='imperial'}">Imperial (lb, ft)</button>
+    </div></div>`;
+
+  // Goal override
+  html += `<div class="section-label">Adjust goal</div>
+    <div class="card"><label class="small muted" style="font-weight:600">We auto-detected "${cap(detectGoal(p))}". Override if you prefer:</label>
+    <div class="segmented mt" id="goalSeg">
+      <button data-goal="gain" aria-pressed="${c.goal==='gain'}">Gain</button>
+      <button data-goal="maintain" aria-pressed="${c.goal==='maintain'}">Maintain</button>
+      <button data-goal="lose" aria-pressed="${c.goal==='lose'}">Lose</button>
+    </div></div>`;
+
+  // Actions
+  html += `<div class="section-label">Manage</div>
+    <button class="btn secondary" id="retake">Re-take assessment</button>
+    <div style="height:10px"></div>
+    <button class="btn secondary" id="exportBtn">Export my data (JSON)</button>
+    <div style="height:10px"></div>
+    <button class="btn danger" id="resetBtn">Delete all my data</button>`;
+
+  html += `<div class="alert warn mt"><b>Privacy & safety</b>Vita runs entirely on your device. No account, no servers, no internet — your data never leaves this browser. This app gives general wellness guidance and is <b>not a substitute for professional medical advice</b>.</div>`;
+
+  $("#page-profile").innerHTML = html;
+
+  $("#wlogBtn").addEventListener("click",()=>{
+    let v=parseFloat($("#wlog").value); if(!v){ toast("Enter a realistic weight"); return; }
+    if(units()==="imperial") v=lbToKg(v);          // store canonical kg
+    v=Math.round(v*10)/10;
+    if(v<25||v>300){ toast("Enter a realistic weight"); return; }
+    state.weightLog=state.weightLog||[];
+    const k=todayKey();
+    const existing=state.weightLog.find(x=>x.date===k);
+    if(existing) existing.kg=v; else state.weightLog.push({date:k,kg:v});
+    state.profile.weight=v; saveState(); toast("Weight saved"); renderAll();
+  });
+  $$("#themeSeg button").forEach(b=>b.addEventListener("click",()=>{ setTheme(b.dataset.theme); renderProfile(); }));
+  $$("#unitSeg button").forEach(b=>b.addEventListener("click",()=>{
+    state.profile.units=b.dataset.units; saveState(); toast("Units updated"); renderAll();
+  }));
+  $$("#goalSeg button").forEach(b=>b.addEventListener("click",()=>{
+    state.profile.goalOverride = b.dataset.goal===detectGoal(state.profile) ? null : b.dataset.goal;
+    rebuildPlan(); saveState(); toast("Goal updated"); renderAll();
+  }));
+  $("#retake").addEventListener("click",()=>{ startOnboarding(state.profile); });
+  $("#exportBtn").addEventListener("click",exportData);
+  $("#resetBtn").addEventListener("click",()=>{
+    if(confirm("Delete ALL your Vita data from this device? This cannot be undone.")){
+      localStorage.removeItem(STORE); state=null; location.reload();
+    }
+  });
+}
+
+function cap(s){ return s? s.charAt(0).toUpperCase()+s.slice(1):""; }
+
+/* ---------- Unit conversion (canonical storage is always cm / kg) ---------- */
+const LB_PER_KG = 2.2046226218;
+function kgToLb(kg){ return kg*LB_PER_KG; }
+function lbToKg(lb){ return lb/LB_PER_KG; }
+function cmToFtIn(cm){ const t=cm/2.54; let ft=Math.floor(t/12), inch=Math.round(t-ft*12); if(inch===12){ft++;inch=0;} return {ft,inch}; }
+function ftInToCm(ft,inch){ return ((+ft||0)*12+(+inch||0))*2.54; }
+function units(){ return (state&&state.profile&&state.profile.units)||"metric"; }
+function fmtWeight(kg,u){ u=u||units(); if(kg==null||kg==="") return "—"; return u==="imperial" ? (Math.round(kgToLb(kg)*10)/10)+" lb" : (Math.round(kg*10)/10)+" kg"; }
+function fmtHeight(cm,u){ u=u||units(); if(!cm) return "—"; if(u==="imperial"){ const {ft,inch}=cmToFtIn(cm); return ft+"′"+inch+"″"; } return Math.round(cm)+" cm"; }
+function weightUnit(u){ return (u||units())==="imperial"?"lb":"kg"; }
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(iso){ const [y,m,d]=iso.split("-").map(Number); const t=todayKey();
+  if(iso===t) return "Today";
+  const yd=new Date(); yd.setDate(yd.getDate()-1); if(iso===yd.toISOString().slice(0,10)) return "Yesterday";
+  return MONTHS[m-1]+" "+d+(y!==new Date().getFullYear()?(" "+y):""); }
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="vita-data.json"; a.click();
+  URL.revokeObjectURL(url); toast("Exported");
+}
+
+function rebuildPlan(){
+  const c=compute(state.profile);
+  state.checklist = buildChecklist(state.profile, c);
+}
+
+/* ---------- Plan as plain text (for local share / clipboard) ---------- */
+function planAsText(){
+  const p=state.profile, c=compute(p);
+  const L=[];
+  L.push("Vita — my health plan");
+  if(p.name) L.push("For: "+p.name);
+  L.push("Goal: "+c.gm.label);
+  L.push("");
+  L.push("DAILY TARGETS");
+  L.push("- Calories: ~"+c.calories+" kcal");
+  L.push("- Protein: "+c.proteinG+" g");
+  L.push("- Carbs: "+c.carbG+" g");
+  L.push("- Fat: "+c.fatG+" g");
+  L.push("- Water: "+(c.hydration/1000).toFixed(1)+" L");
+  L.push("- BMI: "+c.bmi.toFixed(1));
+  L.push("");
+  L.push("DAILY REQUIREMENTS");
+  state.checklist.forEach(it=>L.push("- "+it.title+" ("+it.target+")"));
+  L.push("");
+  L.push("SAMPLE DAY (~"+c.calories+" kcal)");
+  sampleMealPlan(p,c).forEach(m=>L.push("- "+m.name+": "+m.foods+" — ~"+m.kcal+" kcal, "+m.protein+"g protein"));
+  L.push("");
+  L.push("Educational guidance, not medical advice. Made with Vita.");
+  return L.join("\n");
+}
+async function sharePlan(){
+  const text=planAsText();
+  try{ if(navigator.share){ await navigator.share({title:"My Vita plan", text}); return; } }
+  catch(e){ if(e && e.name==="AbortError") return; /* else fall through */ }
+  try{ await navigator.clipboard.writeText(text); toast("Plan copied to clipboard"); return; }
+  catch(e){ /* file:// or insecure context — use legacy fallback */ }
+  try{
+    const ta=document.createElement("textarea"); ta.value=text;
+    ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta);
+    ta.focus(); ta.select(); const ok=document.execCommand("copy"); document.body.removeChild(ta);
+    toast(ok?"Plan copied":"Couldn't copy");
+  }catch(e){ toast("Couldn't copy"); }
+}
+
+function renderAll(){
+  renderToday(); renderPlan(); renderInsights(); renderProfile();
+}
+
+/* =========================================================================
+   NAVIGATION
+   ========================================================================= */
+const TITLES={today:"Today",plan:"Your Plan",insights:"Insights",profile:"Profile"};
+function go(tab){
+  $$(".tab").forEach(t=>t.setAttribute("aria-selected", t.dataset.tab===tab));
+  $$(".page").forEach(p=>p.classList.toggle("active", p.id===`page-${tab}`));
+  $("#barTitle").textContent=TITLES[tab];
+  window.scrollTo(0,0);
+}
+$$(".tab").forEach(t=>t.addEventListener("click",()=>go(t.dataset.tab)));
+$("#themeToggle").addEventListener("click",()=>setTheme(state.theme==="dark"?"light":"dark"));
+window.addEventListener("scroll",()=>$("#appbar").classList.toggle("scrolled", window.scrollY>4));
+
+function setTheme(t){
+  state.theme=t; document.documentElement.setAttribute("data-theme",t);
+  $("#themeToggle").parentElement && saveState();
+}
+
+/* =========================================================================
+   ONBOARDING (5 steps)
+   ========================================================================= */
+let ob = { step:0, data:null };
+
+function startOnboarding(existing){
+  ob.step=0;
+  ob.data = existing ? JSON.parse(JSON.stringify(existing)) : {
+    name:"", sex:"male", age:"", height:"", weight:"", bodyFat:"", activity:"moderate",
+    feelings:{energy:6, sleep:6, stress:4}, budget:"", climate:"", area:"", goalOverride:null, units:"metric"
+  };
+  if(!ob.data.units) ob.data.units="metric";
+  $("#onboarding").classList.add("active");
+  renderOb();
+}
+
+const OB_STEPS = 5;
+function renderOb(){
+  // progress bar
+  $("#obProgress").innerHTML = Array.from({length:OB_STEPS},(_,i)=>
+    `<span class="${i<=ob.step?'filled':''}"><i></i></span>`).join("");
+
+  const d=ob.data;
+  let body="";
+  if(ob.step===0){
+    body=`<div class="ob-step active">
+      <div class="hero-ico">🌿</div>
+      <h1>Welcome to Vita</h1>
+      <p class="muted">Your private health assistant. Answer a few questions and I'll build a daily plan tailored to your body, your budget, and where you live.</p>
+      <div class="field mt"><label>What should I call you? (optional)</label>
+        <input class="input" id="f-name" value="${esc(d.name||"")}" placeholder="Your name" autocomplete="off"></div>
+      <div class="card flat" style="background:var(--secondary-soft); border:none">
+        <p class="small" style="margin:0">✨ New here? Load a sample profile to see how Vita works — then re-take it with your own details.</p>
+        <button class="btn secondary sm mt" id="loadInbody" style="width:100%">Try a sample profile</button>
+      </div>
+      <p class="small muted mt">🔒 Everything stays on your device. No account, no internet.</p>
+    </div>`;
+  }
+  if(ob.step===1){
+    const imp = d.units==="imperial";
+    const ftin = d.height ? cmToFtIn(d.height) : {ft:"",inch:""};
+    const wDisp = d.weight!=="" && d.weight!=null ? (imp ? Math.round(kgToLb(d.weight)*10)/10 : d.weight) : "";
+    const heightInputs = imp
+      ? `<div class="field"><label>Height</label><div class="row2" style="gap:8px">
+           <div class="suffix-wrap"><input class="input" id="f-height-ft" type="number" inputmode="numeric" value="${ftin.ft}" placeholder="5"><span class="suffix">ft</span></div>
+           <div class="suffix-wrap"><input class="input" id="f-height-in" type="number" inputmode="numeric" value="${ftin.inch}" placeholder="10"><span class="suffix">in</span></div>
+         </div></div>`
+      : `<div class="field"><label>Height</label><div class="suffix-wrap"><input class="input" id="f-height" type="number" inputmode="decimal" value="${d.height||""}" placeholder="170"><span class="suffix">cm</span></div></div>`;
+    body=`<div class="ob-step active">
+      <h1>Your body</h1>
+      <p class="muted">These let me calculate your energy needs accurately.</p>
+      <div class="field"><label>Units</label>
+        <div class="segmented" id="f-units">
+          <button data-v="metric" aria-pressed="${!imp}">Metric (kg, cm)</button>
+          <button data-v="imperial" aria-pressed="${imp}">Imperial (lb, ft)</button>
+        </div></div>
+      <div class="field"><label>Sex (for metabolic formula)</label>
+        <div class="segmented" id="f-sex">
+          <button data-v="male" aria-pressed="${d.sex==='male'}">Male</button>
+          <button data-v="female" aria-pressed="${d.sex==='female'}">Female</button>
+        </div></div>
+      <div class="row2">
+        <div class="field"><label>Age</label><div class="suffix-wrap"><input class="input" id="f-age" type="number" inputmode="numeric" value="${d.age||""}" placeholder="30"><span class="suffix">yrs</span></div></div>
+        ${heightInputs}
+      </div>
+      <div class="row2">
+        <div class="field"><label>Weight</label><div class="suffix-wrap"><input class="input" id="f-weight" type="number" inputmode="decimal" step="0.1" value="${wDisp}" placeholder="${imp?'154':'70'}"><span class="suffix">${imp?'lb':'kg'}</span></div></div>
+        <div class="field"><label>Body fat (optional)</label><div class="suffix-wrap"><input class="input" id="f-bodyfat" type="number" inputmode="decimal" step="0.1" value="${d.bodyFat||""}" placeholder="—"><span class="suffix">%</span></div></div>
+      </div>
+      <div class="field"><label>How active are you?</label>
+        <select class="input" id="f-activity">
+          ${Object.keys(ACTIVITY_LABEL).map(k=>`<option value="${k}" ${d.activity===k?"selected":""}>${ACTIVITY_LABEL[k]}</option>`).join("")}
+        </select></div>
+    </div>`;
+  }
+  if(ob.step===2){
+    const fe=d.feelings;
+    body=`<div class="ob-step active">
+      <h1>How do you feel?</h1>
+      <p class="muted">Honest sliders help me add the right recovery and wellbeing tasks.</p>
+      ${slider("energy","Energy levels",fe.energy,"😴","⚡")}
+      ${slider("sleep","Sleep quality",fe.sleep,"🥱","😌")}
+      ${slider("stress","Stress levels",fe.stress,"😌","😰")}
+    </div>`;
+  }
+  if(ob.step===3){
+    body=`<div class="ob-step active">
+      <h1>Your budget</h1>
+      <p class="muted">I'll suggest foods that fit. There's a great plan at every budget.</p>
+      <div class="options" id="f-budget">
+        ${optCard("budget","low","💰","Tight budget","Cheap, nutrient-dense staples",d.budget)}
+        ${optCard("budget","medium","💳","Moderate","Balanced value picks",d.budget)}
+        ${optCard("budget","high","💎","Comfortable","Premium variety & convenience",d.budget)}
+      </div>
+    </div>`;
+  }
+  if(ob.step===4){
+    body=`<div class="ob-step active">
+      <h1>Where you live</h1>
+      <p class="muted">Climate affects hydration & training; your area affects food access.</p>
+      <label class="small muted" style="font-weight:600; text-transform:uppercase; letter-spacing:.02em">Climate</label>
+      <div class="options" id="f-climate" style="margin:8px 0 16px">
+        ${optCard("climate","hot","☀️","Hot","Heat raises your water needs",d.climate)}
+        ${optCard("climate","temperate","⛅","Temperate","Mild, flexible",d.climate)}
+        ${optCard("climate","cold","❄️","Cold","Thirst is blunted — sip on schedule",d.climate)}
+      </div>
+      <label class="small muted" style="font-weight:600; text-transform:uppercase; letter-spacing:.02em">Area</label>
+      <div class="options" id="f-area" style="margin-top:8px">
+        ${optCard("area","urban","🏙️","Urban","Variety & gyms, higher cost",d.area)}
+        ${optCard("area","rural","🌾","Rural","Staples & bodyweight training",d.area)}
+      </div>
+    </div>`;
+  }
+  $("#obBody").innerHTML=body;
+  $("#obBack").style.display = ob.step>0 ? "inline-flex":"none";
+  $("#obNext").textContent = ob.step===OB_STEPS-1 ? "Build my plan ✨" : "Continue";
+  attachObHandlers();
+}
+
+function slider(key,label,val,lo,hi){
+  return `<div class="slider-field">
+    <div class="slider-head"><label style="margin:0">${label}</label><span class="slider-val" id="sv-${key}">${val}/10</span></div>
+    <input type="range" min="1" max="10" value="${val}" id="f-${key}" data-key="${key}">
+    <div class="slider-head small muted"><span>${lo} Low</span><span>High ${hi}</span></div>
+  </div>`;
+}
+function optCard(group,val,ico,title,sub,current){
+  return `<button class="opt" type="button" data-group="${group}" data-v="${val}" aria-pressed="${current===val}">
+    <span class="opt-ico">${ico}</span>
+    <span class="opt-body"><span class="opt-title">${title}</span><br><span class="opt-sub">${sub}</span></span>
+    <svg class="opt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>`;
+}
+
+function attachObHandlers(){
+  const d=ob.data;
+  const bind=(id,prop)=>{ const el=$("#"+id); if(el) el.addEventListener("input",()=>d[prop]=el.value); };
+  bind("f-name","name"); bind("f-age","age"); bind("f-bodyfat","bodyFat");
+  const act=$("#f-activity"); if(act) act.addEventListener("change",()=>d.activity=act.value);
+
+  // Units: toggle re-renders step 1 (canonical cm/kg already stored, so values convert)
+  $$("#f-units button").forEach(b=>b.addEventListener("click",()=>{ d.units=b.dataset.v; renderOb(); }));
+
+  // Height — store canonical cm
+  const imp = d.units==="imperial";
+  if(imp){
+    const recalcH=()=>{ const ft=$("#f-height-ft").value, inch=$("#f-height-in").value;
+      d.height = (ft==="" && inch==="") ? "" : Math.round(ftInToCm(ft,inch)*10)/10; };
+    $("#f-height-ft") && $("#f-height-ft").addEventListener("input",recalcH);
+    $("#f-height-in") && $("#f-height-in").addEventListener("input",recalcH);
+  } else {
+    const h=$("#f-height"); if(h) h.addEventListener("input",()=>d.height=h.value);
+  }
+  // Weight — store canonical kg
+  const w=$("#f-weight"); if(w) w.addEventListener("input",()=>{
+    const v=w.value; d.weight = v==="" ? "" : (imp ? Math.round(lbToKg(+v)*10)/10 : +v);
+  });
+
+  $("#loadInbody") && $("#loadInbody").addEventListener("click",()=>{
+    Object.assign(d, JSON.parse(JSON.stringify(INBODY_PRESET)), {name:d.name});
+    toast("Sample profile loaded"); renderOb();
+  });
+
+  $$("#f-sex button").forEach(b=>b.addEventListener("click",()=>{
+    d.sex=b.dataset.v; $$("#f-sex button").forEach(x=>x.setAttribute("aria-pressed",x===b)); }));
+
+  ["energy","sleep","stress"].forEach(k=>{
+    const el=$("#f-"+k); if(el) el.addEventListener("input",()=>{ d.feelings[k]=+el.value; $("#sv-"+k).textContent=el.value+"/10"; });
+  });
+
+  $$(".opt").forEach(b=>b.addEventListener("click",()=>{
+    const g=b.dataset.group; d[g]=b.dataset.v;
+    $$(`.opt[data-group="${g}"]`).forEach(x=>x.setAttribute("aria-pressed", x===b));
+  }));
+}
+
+function validateStep(){
+  const d=ob.data;
+  if(ob.step===1){
+    const age=+d.age, h=+d.height, w=+d.weight;
+    if(!age||age<5||age>120){ toast("Enter a valid age"); return false; }
+    if(!h||h<100||h>250){ toast("Enter a valid height"); return false; }
+    if(!w||w<25||w>300){ toast("Enter a valid weight"); return false; }
+  }
+  if(ob.step===3 && !d.budget){ toast("Pick a budget"); return false; }
+  if(ob.step===4){ if(!d.climate){ toast("Pick your climate"); return false; } if(!d.area){ toast("Pick your area"); return false; } }
+  return true;
+}
+
+$("#obNext").addEventListener("click",()=>{
+  if(!validateStep()) return;
+  if(ob.step < OB_STEPS-1){ ob.step++; renderOb(); $(".ob-body").scrollTo(0,0); return; }
+  finishOnboarding();
+});
+$("#obBack").addEventListener("click",()=>{ if(ob.step>0){ ob.step--; renderOb(); } });
+
+function finishOnboarding(){
+  const d=ob.data;
+  // normalize numbers (height/weight are already canonical cm/kg)
+  d.age=+d.age; d.height=+d.height; d.weight=+d.weight;
+  d.bodyFat = d.bodyFat!=="" && d.bodyFat!=null ? +d.bodyFat : null;
+  d.units = d.units||"metric";
+  const prev = state || {};
+  state = {
+    profile:d,
+    theme: prev.theme || (matchMediaDark()?"dark":"light"),
+    progress: prev.progress || {},
+    weightLog: prev.weightLog || [{date:todayKey(), kg:d.weight}],
+    checklist: []
+  };
+  rebuildPlan();
+  saveState();
+  $("#onboarding").classList.remove("active");
+  document.documentElement.setAttribute("data-theme",state.theme);
+  go("today"); renderAll();
+  toast("Your plan is ready 🎉");
+}
+
+function matchMediaDark(){ try{ return window.matchMedia("(prefers-color-scheme: dark)").matches; }catch(e){ return false; } }
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+function boot(){
+  if(state && state.profile){
+    document.documentElement.setAttribute("data-theme", state.theme||"light");
+    if(!state.checklist || !state.checklist.length) rebuildPlan();
+    renderAll(); go("today");
+  } else {
+    startOnboarding(null);
+  }
+  // register service worker only when served over http(s) — silently skip on file://
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+}
+boot();
+</script>
+</body>
+</html>

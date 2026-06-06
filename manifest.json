@@ -1,0 +1,20 @@
+{
+  "name": "Vita — Personal Health Assistant",
+  "short_name": "Vita",
+  "description": "Personalized daily health requirements based on your body, budget, and where you live. Works offline. Your data stays on your device.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F7F6",
+  "theme_color": "#1FA97E",
+  "categories": ["health", "lifestyle", "fitness"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
