@@ -9,6 +9,9 @@ checklist of health "requirements" plus tips — then tracks your progress and s
 There's a **"Try a sample profile"** button on the welcome screen if you just want to see how it
 works before entering your own details.
 
+**Languages:** English and **繁體中文（台灣）**. Vita auto-detects your device language and you can
+switch anytime (Profile → Language, or on the welcome screen).
+
 ---
 
 ## 🔒 Privacy & security by design

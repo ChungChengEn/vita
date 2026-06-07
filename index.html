@@ -365,6 +365,456 @@ function saveState(){ localStorage.setItem(STORE, JSON.stringify(state)); }
 
 let state = loadState();
 
+/* =========================================================================
+   i18n — English + Traditional Chinese (Taiwan). curLang() reads appLang.
+   Values may be strings or functions (for interpolation): t("k")(args).
+   ========================================================================= */
+function defaultLang(){ try{ return (navigator.language||"").toLowerCase().indexOf("zh")===0 ? "zh" : "en"; }catch(e){ return "en"; } }
+let appLang = (state && state.lang) ? state.lang : defaultLang();
+function curLang(){ return appLang || "en"; }
+function L(){ return I18N[curLang()] || I18N.en; }
+function t(k){ const d=L(); return (d[k]!==undefined) ? d[k] : (I18N.en[k]!==undefined ? I18N.en[k] : k); }
+function setLang(l){
+  appLang = l;
+  if(state){ state.lang = l; saveState(); }
+  document.documentElement.setAttribute("lang", l==="zh" ? "zh-Hant" : "en");
+}
+
+const TIPS_EN = {
+  gain:[
+    {t:"Liquid calories win", b:"Hard to eat enough? Blend whole milk + oats + peanut butter + banana + whey. ~700 kcal you can drink without feeling stuffed."},
+    {t:"Eat on a clock", b:"Underweight bodies often under-eat from low appetite, not choice. Set meal alarms — consistency beats willpower."},
+    {t:"Patience is the plan", b:"Aim for slow, mostly-lean gain (~0.25–0.5 kg/wk). A big target is a 12–18 month journey, not a sprint."},
+    {t:"Train, don't just eat", b:"A surplus without resistance training adds mostly fat. Lift 4–5×/week so the extra calories build muscle."},
+    {t:"Add, don't replace", b:"Bolt calories onto meals you already eat — a handful of nuts, a drizzle of olive oil, an extra scoop of rice. Easier than forcing a whole new meal."},
+    {t:"Progressive overload", b:"Each week aim to add a little weight or a rep. Steady progression on the bar is what tells your body to build new muscle."},
+    {t:"Don't fear the rest day", b:"Muscle grows between sessions, not during them. 7.5–9 h sleep and full rest days are part of the program, not a break from it."},
+    {t:"Track to believe it", b:"On low-appetite days you'll swear you ate enough when you didn't. A few days of logging shows the real gap to your surplus."}
+  ],
+  lose:[
+    {t:"Protein protects muscle", b:"In a deficit, high protein (1.8–2.4 g/kg) keeps your hard-earned muscle and keeps you full."},
+    {t:"Drink before you eat", b:"A glass of water before meals reduces accidental over-eating — thirst masquerades as hunger."},
+    {t:"Lift to keep the engine", b:"Cardio burns calories today; resistance training keeps your metabolism high tomorrow."},
+    {t:"Volume over density", b:"Fill the plate with vegetables and lean protein — high volume, low calories. You eat more and feel fuller for the same energy."},
+    {t:"Steps are silent cardio", b:"A daily walk target (8–12k steps) burns meaningful calories without the recovery cost of hard cardio."},
+    {t:"Plateaus are normal", b:"Weight drops in steps, not a smooth line. Hold the course for 2–3 weeks before changing anything; water shifts hide real fat loss."},
+    {t:"Slow is sustainable", b:"Aim for ~0.5–0.75 kg/week. Faster loss costs you muscle and rarely sticks."}
+  ],
+  maintain:[
+    {t:"Consistency compounds", b:"Maintenance is a skill. Small daily habits beat dramatic resets every time."},
+    {t:"Strength is longevity", b:"Keep lifting — muscle mass is one of the best predictors of healthy aging."},
+    {t:"Mind the drift", b:"Maintenance isn't autopilot. A weekly weigh-in catches slow drift early, while it's a 1 kg fix and not a 5 kg one."},
+    {t:"Train for life, not looks", b:"Mix strength, a little cardio, and mobility. The goal is a body that moves well and feels good for decades."},
+    {t:"Protein still matters", b:"Even at maintenance, 1.4–1.8 g/kg protein supports muscle, recovery, and steady appetite."}
+  ],
+  general:[
+    {t:"Hydration is a quiet superpower", b:"Even mild dehydration saps energy, focus, and training quality. Keep a bottle visible — out of sight is out of mind."},
+    {t:"Sleep is the cheat code", b:"Nothing else on this list works well on 5 hours. Protect a consistent bedtime; it improves appetite, mood, and recovery at once."},
+    {t:"Eat well on any budget", b:"Eggs, oats, beans, frozen veg, and bulk whey deliver elite nutrition for very little. Healthy doesn't have to be expensive."},
+    {t:"Cook once, eat thrice", b:"Batch-cook a protein and a grain on a free day. Future-you makes far better choices when good food is already in the fridge."},
+    {t:"Don't break the chain", b:"Missing one day means nothing; missing the day after is what hurts. Aim to never skip twice in a row."},
+    {t:"Move every hour", b:"Long sitting blunts the benefits of a single workout. A 2-minute stand-and-stretch each hour adds up quietly."},
+    {t:"Progress isn't linear", b:"Energy, weight, and motivation all wobble day to day. Judge yourself on the weekly trend, not any single morning."}
+  ]
+};
+const TIPS_ZH = {
+  gain:[
+    {t:"用喝的補熱量", b:"吃不夠嗎？把全脂牛奶＋燕麥＋花生醬＋香蕉＋乳清打成奶昔，約 700 大卡、輕鬆喝下不脹。"},
+    {t:"按時吃飯", b:"體重過輕常是因為食慾低而吃不夠，不是不想吃。設定用餐鬧鐘——規律勝過意志力。"},
+    {t:"耐心就是計畫", b:"目標是緩慢、以精瘦為主的增重（每週約 0.25–0.5 公斤）。較大的目標是 12–18 個月的旅程，不是衝刺。"},
+    {t:"別只吃、要練", b:"有盈餘卻不做阻力訓練，多半長脂肪。每週練 4–5 次，讓多出來的熱量去長肌肉。"},
+    {t:"用加的，不用換的", b:"把熱量加進你已在吃的餐點——一把堅果、一點橄欖油、多一勺飯，比硬塞一整餐輕鬆。"},
+    {t:"漸進負荷", b:"每週設法多加一點重量或一下次數。器材上穩定的進步，才是叫身體長新肌肉的訊號。"},
+    {t:"別怕休息日", b:"肌肉在訓練之間長大，不是在當下。7.5–9 小時睡眠與完整休息日是計畫的一部分，不是偷懶。"},
+    {t:"記錄才看得到", b:"食慾低的日子，你會以為吃夠了其實沒有。記錄幾天，就會看到離盈餘的真正差距。"}
+  ],
+  lose:[
+    {t:"蛋白質保護肌肉", b:"熱量赤字時，高蛋白（每公斤 1.8–2.4 克）能保住辛苦練來的肌肉並維持飽足。"},
+    {t:"飯前先喝水", b:"餐前一杯水能減少不小心吃過量——口渴常被誤認為飢餓。"},
+    {t:"重訓維持代謝", b:"有氧消耗的是今天的熱量；阻力訓練維持的是明天的代謝。"},
+    {t:"重體積、輕熱量", b:"餐盤裝滿蔬菜與瘦蛋白——體積大、熱量低。同樣熱量能吃更多、更有飽足感。"},
+    {t:"走路是無聲有氧", b:"每天的步數目標（8–12 千步）能消耗可觀熱量，又沒有高強度有氧的恢復成本。"},
+    {t:"停滯很正常", b:"體重是階梯式下降，不是平滑曲線。改變任何東西前先維持 2–3 週；水分波動會蓋過真正的脂肪減少。"},
+    {t:"慢才能持久", b:"目標每週約 0.5–0.75 公斤。減太快會犧牲肌肉，也很難維持。"}
+  ],
+  maintain:[
+    {t:"一致性會複利", b:"維持是一種技能。每天的小習慣，永遠勝過劇烈的大重置。"},
+    {t:"力量就是長壽", b:"持續重訓——肌肉量是健康老化最好的預測指標之一。"},
+    {t:"留意慢慢漂移", b:"維持不是自動駕駛。每週量體重能及早抓到漂移，趁它還是 1 公斤、不是 5 公斤時處理。"},
+    {t:"為生活而練", b:"混合力量、一點有氧與活動度。目標是一個動得好、數十年都舒服的身體。"},
+    {t:"蛋白質依然重要", b:"即使在維持期，每公斤 1.4–1.8 克蛋白質仍能支持肌肉、恢復與穩定食慾。"}
+  ],
+  general:[
+    {t:"水分是低調的超能力", b:"即使輕微脫水也會削弱精力、專注與訓練品質。把水瓶放在看得到的地方——看不到就想不起來。"},
+    {t:"睡眠是作弊碼", b:"只睡 5 小時，清單上其他事都做不好。固定就寢時間，能同時改善食慾、情緒與恢復。"},
+    {t:"任何預算都能吃得好", b:"蛋、燕麥、豆類、冷凍蔬菜與大包乳清，用很少的錢就能提供頂級營養。健康不一定貴。"},
+    {t:"煮一次、吃三餐", b:"空閒日一次煮好一份蛋白質與一份主食。冰箱有現成好食物時，未來的你會做出更好的選擇。"},
+    {t:"別中斷連續紀錄", b:"漏一天沒關係；真正傷的是隔天又漏。目標是絕不連續漏兩天。"},
+    {t:"每小時動一下", b:"久坐會抵銷單次運動的好處。每小時站起來伸展 2 分鐘，默默累積成效。"},
+    {t:"進步不是直線", b:"精力、體重與動機每天都會起伏。用每週趨勢評斷自己，而不是某個早晨。"}
+  ]
+};
+
+const I18N = {
+  en: {
+    /* nav + chrome */
+    nav_today:"Today", nav_plan:"Plan", nav_insights:"Insights", nav_profile:"Profile",
+    bar_today:"Today", bar_plan:"Your Plan", bar_insights:"Insights", bar_profile:"Profile",
+    theme_aria:"Toggle dark mode",
+    /* today */
+    greet_morning:"Good morning", greet_afternoon:"Good afternoon", greet_evening:"Good evening",
+    hi_there:"there",
+    streak:(n)=>`🔥 ${n} day streak`,
+    reqs_complete:(d,total)=>`${d}/${total} requirements complete`,
+    todays_reqs:"Today's requirements", ring_done:"done today",
+    redflag_header:"⚠️ Please check with a professional",
+    edu_disclaimer:"Educational guidance, not medical advice.",
+    hydration:"Hydration",
+    water_count:(g,t)=>`💧 ${g} / ${t} glasses`,
+    water_sub:(l,tl,ml)=>`${l} of ${tl} L · one glass = ${ml} ml`,
+    water_add:"+ Add a glass", water_goal:"Goal reached 🎉",
+    water_minus_aria:"Remove a glass", water_add_aria:"Add a glass",
+    toast_hydration:"Hydration goal hit 💧",
+    /* goals */
+    goal_gain_label:"Gain healthy weight & build muscle",
+    goal_maintain_label:"Maintain & stay strong",
+    goal_lose_label:"Lose fat, keep muscle",
+    weekly_gain:"+0.25–0.5 kg/wk", weekly_maintain:"±0", weekly_lose:"−0.5–0.75 kg/wk",
+    goal_gain_short:"Gain", goal_maintain_short:"Maintain", goal_lose_short:"Lose",
+    /* activity */
+    act_sedentary:"Sedentary", act_light:"Light (1–3 d/wk)", act_moderate:"Moderate (3–5 d/wk)",
+    act_very:"Very active (6–7 d/wk)", act_athlete:"Athlete (2×/day)",
+    /* checklist categories */
+    cat_Nutrition:"Nutrition", cat_Protein:"Protein", cat_Hydration:"Hydration",
+    cat_Movement:"Movement", cat_Recovery:"Recovery", cat_Mind:"Mind", cat_Weekly:"Weekly",
+    /* checklist items */
+    ck_cal_gain_t:"Hit your calorie surplus",
+    ck_cal_gain_d:(cal,mc)=>`≈ ${cal} kcal across ${mc} meals — don't skip any`,
+    ck_snack_t:"Add one calorie-dense snack",
+    ck_snack_d:"Nuts, nut butter, dried fruit, or a whole-milk smoothie",
+    ck_cal_lose_t:"Stay in your calorie target",
+    ck_cal_lose_d:(cal)=>`≈ ${cal} kcal — high-volume, high-fiber foods`,
+    ck_fiber_t:"Get 25–35 g fiber",
+    ck_fiber_d:"Veg, legumes, whole grains — keeps you full",
+    ck_cal_maintain_t:"Eat to your target",
+    ck_cal_maintain_d:(cal)=>`≈ ${cal} kcal — balanced plate (½ veg, ¼ protein, ¼ carbs)`,
+    ck_protein_t:(g)=>`Reach ${g} g protein`,
+    ck_protein_d:(per)=>`Spread across meals (~${per} g each)`,
+    ck_water_t:(l)=>`Drink ${l} L of water`,
+    ck_water_d_hot:"Extra for heat — add electrolytes if sweating >1 h",
+    ck_water_d_cold:"Thirst is blunted in cold — sip on a schedule",
+    ck_water_d_temp:"Spread through the day",
+    ck_train_gain_t:"Resistance training (progressive overload)",
+    ck_train_gain_d:"4–5×/week — add a little load or reps each week",
+    ck_creatine_t:"Creatine monohydrate (optional)",
+    ck_creatine_d:"3–5 g/day — evidence-backed for lean gain",
+    ck_train_lose_t:"Resistance training",
+    ck_train_lose_d:"3–4×/week to keep muscle while losing fat",
+    ck_steps_t:"8,000–12,000 steps",
+    ck_steps_d:"Plus 2–3 Zone-2 cardio sessions/week",
+    ck_train_maintain_t:"Move your body",
+    ck_train_maintain_d:"3× resistance + 2× cardio; 7–10k steps/day",
+    ck_mobility_t:"10 min mobility / stretch",
+    ck_mobility_d:"Especially on training days",
+    ck_sleep_t:"Sleep 7.5–9 hours",
+    ck_sleep_d_gain:"Muscle is built during recovery",
+    ck_sleep_d_other:"Protects appetite hormones & mood",
+    ck_calm_t:"5-min breathing / wind-down",
+    ck_calm_d:"You flagged high stress — small resets help",
+    ck_weighin_t:"Weekly weigh-in",
+    ck_weighin_d:(w)=>`Same time & conditions — aim ${w}`,
+    /* red flags */
+    rf_under18:"You're under 18 — growth-stage nutrition is different. Please work with a pediatrician or registered dietitian rather than following automated targets.",
+    rf_bmi16:"Your BMI is in the severely underweight range (<16). Please see a doctor before changing your diet or exercise.",
+    rf_bmi35:"Your BMI is in a range where personalized medical supervision is strongly recommended. Please consult a clinician.",
+    rf_lowenergy:"You reported very low energy and sleep. Persistent exhaustion can signal an underlying issue worth discussing with a doctor.",
+    /* foods */
+    foods_low_title:"Budget-friendly powerhouses",
+    foods_low_items:["Eggs — cheapest complete protein","Whole or powdered milk — calorie + protein dense","Dried beans, lentils, chickpeas","Peanut butter & peanuts","Oats (blend into shakes)","Rice, potatoes, bananas","Canned tuna / sardines (omega-3)","Bulk whey protein — cheapest $/g supplement"],
+    foods_medium_title:"Balanced value picks",
+    foods_medium_items:["Chicken thighs/breast, ground beef","Greek yogurt, cottage cheese","Frozen mixed veg & berries","Olive oil, mixed nuts, trail mix","Tofu / tempeh / edamame","Whole-grain pasta, sweet potatoes"],
+    foods_high_title:"Premium nutrient-dense",
+    foods_high_items:["Salmon, steak, fresh fish","Grass-fed dairy & aged cheese","Macadamias, almonds, cashews","Avocados & specialty nut butters","Quality mass-gainer shakes","Wide fresh-produce variety"],
+    /* meal plan */
+    protein_src:{low:["eggs","whole milk","lentils","canned tuna","peanut butter","bulk whey"],medium:["chicken","Greek yogurt","ground beef","cottage cheese","tofu","whey"],high:["salmon","steak","grass-fed dairy","fresh fish","quality whey","skyr"]},
+    carb_src:{low:["oats","rice","potatoes","bananas","bread"],medium:["sweet potato","whole-grain pasta","oats","rice","fruit"],high:["sourdough","quinoa","sweet potato","fresh fruit","oats"]},
+    meal_join:" + ",
+    mn_bigbreakfast:"Big breakfast", mn_midmorning:"Mid-morning", mn_lunch:"Lunch",
+    mn_smoothie:"Mass smoothie", mn_dinner:"Dinner", mn_breakfast:"Breakfast", mn_snack:"Snack",
+    w_banana:"banana", w_oliveoil:"olive oil", w_veg:"veg", w_greens:"greens", w_berries:"berries",
+    w_small:"(small)", w_bigsalad:"big salad", w_fruitveg:"fruit / veg sticks", w_nuts:"nuts",
+    w_lotsveg:"lots of veg", w_fruit:"fruit", w_nutbutter:"nut butter", w_bread:"bread", w_whey:"whey",
+    meal_kcal:(k)=>`${k} kcal`, meal_protein:(g)=>`${g}g P`,
+    /* climate / area */
+    climate_hot_title:"Hot climate", climate_temperate_title:"Temperate climate", climate_cold_title:"Cold climate",
+    area_urban_title:"Urban area", area_rural_title:"Rural area",
+    climate_note_hot:"Hot climate: hydrate more (target already raised), train early morning or evening, watch for heat illness, replace electrolytes after long sweat sessions.",
+    climate_note_temperate:"Temperate climate: standard hydration and training timing — you've got flexibility.",
+    climate_note_cold:"Cold climate: thirst is suppressed, so drink on a schedule; warm up longer before training; warm fluids and indoor options help consistency.",
+    area_note_urban:"Urban: lots of food variety and gyms, but it costs more — batch-cook and watch portions of convenience food.",
+    area_note_rural:"Rural: lean on shelf-stable staples (oats, beans, eggs, milk powder, canned fish), buy in bulk, and use bodyweight / minimal-equipment training plus incidental daily activity.",
+    /* tips */
+    tips:TIPS_EN,
+    /* plan */
+    plan_title:"Your plan",
+    plan_sub:"Tailored to your body, budget, and where you live. Re-take the assessment anytime in Profile.",
+    share_plan:"Share / copy my plan",
+    daily_targets:"Daily targets",
+    st_kcal:"kcal / day", st_protein:"protein", st_carbs:"carbs", st_fat:"fat", st_water:"water", st_bmi:"BMI",
+    how_title:"How we got here",
+    how_body:(bmr,act,tdee,weekly)=>`BMR ${bmr} kcal (Mifflin-St Jeor) × ${act} activity = TDEE ${tdee} kcal, adjusted for your goal (${weekly}).`,
+    your_reqs:"Your requirements",
+    eat_well:"Eat well on your budget",
+    smoothie_tip:"Tip: liquid calories (smoothies) are the easiest way to hit a surplus when appetite is low.",
+    sample_day:(cal)=>`A sample day (~${cal} kcal)`,
+    meal_note:"A flexible template, not a prescription — swap foods you like from the list above. Portions scale to your target.",
+    where_live:"Where you live",
+    /* insights */
+    insights_title:"Insights",
+    st_7day:"7-day completion", st_daystreak:"day streak",
+    last4:"Last 4 weeks",
+    heat_caption:"Each square is a day — greener means more requirements completed.",
+    weight_trend:"Weight trend",
+    weight_empty:"Log your weight (Profile → Log weight) a couple of times to see your trend and how you're tracking toward your target.",
+    target_h:(w)=>`Target ${w}`,
+    target_body:(cur,gap,gain,rate,weeks)=>`You're at ${cur} — ${gain?`${gap} to gain`:`${gap} above target`}. At a healthy ${rate} that's about ${weeks} weeks. Slow and steady keeps it lean.`,
+    rate_metric:"~0.35 kg/week", rate_imperial:"~0.8 lb/week",
+    weight_history:"Weight history", showing_recent:"Showing the 14 most recent.",
+    del_entry_aria:(d)=>`Delete entry from ${d}`,
+    toast_entry_removed:"Entry removed",
+    date_today:"Today", date_yesterday:"Yesterday",
+    /* composition */
+    comp_title:"Body composition", comp_score:"InBody score",
+    comp_visceral:"Visceral fat level", comp_healthy:"(healthy)",
+    comp_normal:"normal", tag_low:"low", tag_normal:"normal", tag_high:"high",
+    comp_caption:"Shaded band = typical healthy range for your height & sex. Any marker outside it is flagged Low or High, and your plan is tuned to nudge it back toward the band.",
+    range_weight:"Weight", range_smm:"Skeletal muscle", range_bodyFat:"Body fat mass",
+    range_tbw:"Total body water", range_protein:"Protein", range_minerals:"Minerals",
+    /* profile */
+    profile_title:"Profile", your_details:"Your details",
+    p_goal:"Goal", p_agesex:"Age / Sex", p_hw:"Height / Weight", p_bodyfat:"Body fat",
+    p_activity:"Activity", p_budget:"Budget", p_climatearea:"Climate / Area",
+    log_weight:"Log today's weight", save_weight:"Save weight",
+    appearance:"Appearance & units", theme:"Theme", light:"Light", dark:"Dark",
+    units:"Units", unit_metric:"Metric (kg, cm)", unit_imperial:"Imperial (lb, ft)",
+    language:"Language",
+    adjust_goal:"Adjust goal",
+    autodetected:(g)=>`We auto-detected "${g}". Override if you prefer:`,
+    manage:"Manage", retake:"Re-take assessment", export_data:"Export my data (JSON)", delete_all:"Delete all my data",
+    privacy_title:"Privacy & safety",
+    privacy_body:"Vita runs entirely on your device. No account, no servers, no internet — your data never leaves this browser. This app gives general wellness guidance and is <b>not a substitute for professional medical advice</b>.",
+    confirm_delete:"Delete ALL your Vita data from this device? This cannot be undone.",
+    toast_weight_saved:"Weight saved", toast_units:"Units updated", toast_goal:"Goal updated",
+    toast_lang:"Language updated", toast_exported:"Exported", toast_plan_copied:"Plan copied to clipboard",
+    toast_plan_copied2:"Plan copied", toast_plan_fail:"Couldn't copy", toast_realistic:"Enter a realistic weight",
+    pt_title:"Vita — my health plan", pt_footer:"Educational guidance, not medical advice. Made with Vita.",
+    /* onboarding */
+    ob_welcome_t:"Welcome to Vita",
+    ob_welcome_sub:"Your private health assistant. Answer a few questions and I'll build a daily plan tailored to your body, your budget, and where you live.",
+    name_q:"What should I call you? (optional)", name_ph:"Your name",
+    sample_card:"✨ New here? Load a sample profile to see how Vita works — then re-take it with your own details.",
+    sample_btn:"Try a sample profile",
+    privacy_line:"🔒 Everything stays on your device. No account, no internet.",
+    ob_body_t:"Your body", ob_body_sub:"These let me calculate your energy needs accurately.",
+    sex_label:"Sex (for metabolic formula)", male:"Male", female:"Female",
+    age:"Age", height:"Height", weight:"Weight", bodyfat_opt:"Body fat (optional)", activity_q:"How active are you?",
+    ob_feel_t:"How do you feel?", ob_feel_sub:"Honest sliders help me add the right recovery and wellbeing tasks.",
+    feel_energy:"Energy levels", feel_sleep:"Sleep quality", feel_stress:"Stress levels",
+    low_word:"Low", high_word:"High",
+    ob_budget_t:"Your budget", ob_budget_sub:"I'll suggest foods that fit. There's a great plan at every budget.",
+    bud_low_t:"Tight budget", bud_low_s:"Cheap, nutrient-dense staples",
+    bud_med_t:"Moderate", bud_med_s:"Balanced value picks",
+    bud_high_t:"Comfortable", bud_high_s:"Premium variety & convenience",
+    ob_where_t:"Where you live", ob_where_sub:"Climate affects hydration & training; your area affects food access.",
+    climate_label:"Climate",
+    cl_hot_t:"Hot", cl_hot_s:"Heat raises your water needs",
+    cl_temp_t:"Temperate", cl_temp_s:"Mild, flexible",
+    cl_cold_t:"Cold", cl_cold_s:"Thirst is blunted — sip on schedule",
+    area_label:"Area",
+    ar_urban_t:"Urban", ar_urban_s:"Variety & gyms, higher cost",
+    ar_rural_t:"Rural", ar_rural_s:"Staples & bodyweight training",
+    cont:"Continue", back:"Back", build_plan:"Build my plan ✨",
+    v_age:"Enter a valid age", v_height:"Enter a valid height", v_weight:"Enter a valid weight",
+    v_budget:"Pick a budget", v_climate:"Pick your climate", v_area:"Pick your area",
+    toast_ready:"Your plan is ready 🎉", toast_sample:"Sample profile loaded",
+    units_short_metric:"Metric (kg, cm)", units_short_imperial:"Imperial (lb, ft)"
+  },
+  zh: {
+    nav_today:"今天", nav_plan:"計畫", nav_insights:"分析", nav_profile:"我的",
+    bar_today:"今天", bar_plan:"你的計畫", bar_insights:"分析", bar_profile:"個人資料",
+    theme_aria:"切換深色模式",
+    greet_morning:"早安", greet_afternoon:"午安", greet_evening:"晚安",
+    hi_there:"你好",
+    streak:(n)=>`🔥 連續 ${n} 天`,
+    reqs_complete:(d,total)=>`已完成 ${d}/${total} 項`,
+    todays_reqs:"今日項目", ring_done:"今日完成",
+    redflag_header:"⚠️ 請先諮詢專業人員",
+    edu_disclaimer:"僅供衛教參考，非醫療建議。",
+    hydration:"水分",
+    water_count:(g,t)=>`💧 ${g} / ${t} 杯`,
+    water_sub:(l,tl,ml)=>`${l} / ${tl} 公升 · 一杯 = ${ml} 毫升`,
+    water_add:"＋ 加一杯", water_goal:"已達標 🎉",
+    water_minus_aria:"減一杯", water_add_aria:"加一杯",
+    toast_hydration:"達成喝水目標 💧",
+    goal_gain_label:"健康增重、增肌",
+    goal_maintain_label:"維持體態、保持強壯",
+    goal_lose_label:"減脂、保留肌肉",
+    weekly_gain:"每週 +0.25–0.5 公斤", weekly_maintain:"±0", weekly_lose:"每週 −0.5–0.75 公斤",
+    goal_gain_short:"增重", goal_maintain_short:"維持", goal_lose_short:"減脂",
+    act_sedentary:"久坐", act_light:"輕度（每週 1–3 天）", act_moderate:"中度（每週 3–5 天）",
+    act_very:"高度（每週 6–7 天）", act_athlete:"運動員（每天 2 次）",
+    cat_Nutrition:"營養", cat_Protein:"蛋白質", cat_Hydration:"水分",
+    cat_Movement:"運動", cat_Recovery:"恢復", cat_Mind:"心理", cat_Weekly:"每週",
+    ck_cal_gain_t:"達到熱量盈餘",
+    ck_cal_gain_d:(cal,mc)=>`約 ${cal} 大卡，分 ${mc} 餐——別跳過任何一餐`,
+    ck_snack_t:"加一份高熱量點心",
+    ck_snack_d:"堅果、堅果醬、果乾，或全脂牛奶奶昔",
+    ck_cal_lose_t:"維持熱量目標",
+    ck_cal_lose_d:(cal)=>`約 ${cal} 大卡——多體積、高纖維的食物`,
+    ck_fiber_t:"攝取 25–35 克纖維",
+    ck_fiber_d:"蔬菜、豆類、全穀——增加飽足感",
+    ck_cal_maintain_t:"吃到你的目標熱量",
+    ck_cal_maintain_d:(cal)=>`約 ${cal} 大卡——均衡餐盤（½ 蔬菜、¼ 蛋白質、¼ 碳水）`,
+    ck_protein_t:(g)=>`攝取 ${g} 克蛋白質`,
+    ck_protein_d:(per)=>`分散到各餐（每餐約 ${per} 克）`,
+    ck_water_t:(l)=>`喝 ${l} 公升水`,
+    ck_water_d_hot:"炎熱要多補——流汗超過 1 小時可補充電解質",
+    ck_water_d_cold:"寒冷時口渴感降低——定時小口喝",
+    ck_water_d_temp:"整天分散飲用",
+    ck_train_gain_t:"阻力訓練（漸進負荷）",
+    ck_train_gain_d:"每週 4–5 次——每週逐步增加重量或次數",
+    ck_creatine_t:"肌酸（可選）",
+    ck_creatine_d:"每天 3–5 克——有實證支持的增肌補充",
+    ck_train_lose_t:"阻力訓練",
+    ck_train_lose_d:"每週 3–4 次，減脂同時保留肌肉",
+    ck_steps_t:"8,000–12,000 步",
+    ck_steps_d:"再加每週 2–3 次 Zone-2 有氧",
+    ck_train_maintain_t:"動起來",
+    ck_train_maintain_d:"每週 3 次阻力 + 2 次有氧；每天 7–10 千步",
+    ck_mobility_t:"10 分鐘活動度／伸展",
+    ck_mobility_d:"訓練日尤其重要",
+    ck_sleep_t:"睡 7.5–9 小時",
+    ck_sleep_d_gain:"肌肉是在恢復時長出來的",
+    ck_sleep_d_other:"穩定食慾荷爾蒙與情緒",
+    ck_calm_t:"5 分鐘呼吸／放鬆",
+    ck_calm_d:"你回報壓力偏高——小小重置很有幫助",
+    ck_weighin_t:"每週量體重",
+    ck_weighin_d:(w)=>`相同時間與條件——目標 ${w}`,
+    rf_under18:"你未滿 18 歲——成長期的營養需求不同。請與小兒科醫師或營養師合作，而非依賴自動化目標。",
+    rf_bmi16:"你的 BMI 屬於嚴重過輕（低於 16）。改變飲食或運動前請先就醫。",
+    rf_bmi35:"你的 BMI 落在強烈建議由專業醫療監督的範圍，請諮詢醫師。",
+    rf_lowenergy:"你回報精力與睡眠都非常低落。長期疲憊可能是潛在問題的徵兆，值得與醫師討論。",
+    foods_low_title:"小資族營養首選",
+    foods_low_items:["蛋——最便宜的完整蛋白","全脂或奶粉——熱量與蛋白質都高","乾豆、扁豆、鷹嘴豆","花生醬與花生","燕麥（打進奶昔）","白飯、馬鈴薯、香蕉","鮪魚／沙丁魚罐頭（Omega-3）","大包乳清——每克最便宜的補充品"],
+    foods_medium_title:"均衡高 CP 值",
+    foods_medium_items:["雞腿／雞胸、牛絞肉","希臘優格、茅屋起司","冷凍綜合蔬菜與莓果","橄欖油、綜合堅果、能量果乾","豆腐／天貝／毛豆","全麥義大利麵、地瓜"],
+    foods_high_title:"高階營養密集",
+    foods_high_items:["鮭魚、牛排、新鮮魚","草飼乳製品與熟成起司","夏威夷豆、杏仁、腰果","酪梨與特選堅果醬","優質增重奶昔","多樣新鮮蔬果"],
+    protein_src:{low:["蛋","全脂牛奶","扁豆","鮪魚罐頭","花生醬","乳清"],medium:["雞肉","希臘優格","牛絞肉","茅屋起司","豆腐","乳清"],high:["鮭魚","牛排","草飼乳製品","新鮮魚","優質乳清","Skyr 優格"]},
+    carb_src:{low:["燕麥","白飯","馬鈴薯","香蕉","麵包"],medium:["地瓜","全麥義大利麵","燕麥","白飯","水果"],high:["酸種麵包","藜麥","地瓜","新鮮水果","燕麥"]},
+    meal_join:"、",
+    mn_bigbreakfast:"豐盛早餐", mn_midmorning:"上午點心", mn_lunch:"午餐",
+    mn_smoothie:"增重奶昔", mn_dinner:"晚餐", mn_breakfast:"早餐", mn_snack:"點心",
+    w_banana:"香蕉", w_oliveoil:"橄欖油", w_veg:"蔬菜", w_greens:"綠色蔬菜", w_berries:"莓果",
+    w_small:"（少量）", w_bigsalad:"大份沙拉", w_fruitveg:"水果／蔬菜棒", w_nuts:"堅果",
+    w_lotsveg:"大量蔬菜", w_fruit:"水果", w_nutbutter:"堅果醬", w_bread:"麵包", w_whey:"乳清",
+    meal_kcal:(k)=>`${k} 大卡`, meal_protein:(g)=>`蛋白 ${g}g`,
+    climate_hot_title:"炎熱氣候", climate_temperate_title:"溫和氣候", climate_cold_title:"寒冷氣候",
+    area_urban_title:"都市地區", area_rural_title:"鄉村地區",
+    climate_note_hot:"炎熱氣候：多補充水分（目標已調高）、清晨或傍晚訓練、留意熱傷害、長時間流汗後補充電解質。",
+    climate_note_temperate:"溫和氣候：標準的水分與訓練時間——彈性很大。",
+    climate_note_cold:"寒冷氣候：口渴感被抑制，請定時喝水；訓練前多熱身；溫熱飲品與室內選項有助持之以恆。",
+    area_note_urban:"都市：食物選擇多、健身房方便，但花費較高——可一次備餐並留意外食份量。",
+    area_note_rural:"鄉村：善用耐放的常備食材（燕麥、豆類、蛋、奶粉、罐頭魚），整批採買，並以徒手／簡易器材訓練搭配日常勞動。",
+    tips:TIPS_ZH,
+    plan_title:"你的計畫",
+    plan_sub:"依你的身體、預算與居住地量身打造。隨時可到「我的」重新評估。",
+    share_plan:"分享／複製我的計畫",
+    daily_targets:"每日目標",
+    st_kcal:"大卡／天", st_protein:"蛋白質", st_carbs:"碳水", st_fat:"脂肪", st_water:"水分", st_bmi:"BMI",
+    how_title:"計算依據",
+    how_body:(bmr,act,tdee,weekly)=>`基礎代謝 ${bmr} 大卡（Mifflin-St Jeor）× 活動係數 ${act} = 總消耗 ${tdee} 大卡，再依你的目標調整（${weekly}）。`,
+    your_reqs:"你的每日項目",
+    eat_well:"依預算吃得好",
+    smoothie_tip:"小提示：食慾不佳時，喝的熱量（奶昔）是達到盈餘最輕鬆的方法。",
+    sample_day:(cal)=>`一日範例（約 ${cal} 大卡）`,
+    meal_note:"這是彈性範本而非處方——可從上面清單換成你喜歡的食物，份量會依目標調整。",
+    where_live:"你的居住地",
+    insights_title:"分析",
+    st_7day:"7 天完成率", st_daystreak:"連續天數",
+    last4:"最近四週",
+    heat_caption:"每個方格代表一天——越綠表示完成越多項目。",
+    weight_trend:"體重趨勢",
+    weight_empty:"到「我的 → 記錄體重」多記幾次，就能看到趨勢與朝目標前進的情況。",
+    target_h:(w)=>`目標 ${w}`,
+    target_body:(cur,gap,gain,rate,weeks)=>`你目前 ${cur}——${gain?`還差 ${gap}`:`超出目標 ${gap}`}。以健康的 ${rate} 速度，大約需要 ${weeks} 週。慢而穩才能保持精瘦。`,
+    rate_metric:"每週約 0.35 公斤", rate_imperial:"每週約 0.8 磅",
+    weight_history:"體重紀錄", showing_recent:"顯示最近 14 筆。",
+    del_entry_aria:(d)=>`刪除 ${d} 的紀錄`,
+    toast_entry_removed:"已刪除紀錄",
+    date_today:"今天", date_yesterday:"昨天",
+    comp_title:"身體組成", comp_score:"InBody 分數",
+    comp_visceral:"內臟脂肪等級", comp_healthy:"（健康）",
+    comp_normal:"正常", tag_low:"偏低", tag_normal:"正常", tag_high:"偏高",
+    comp_caption:"陰影區＝你身高與性別的典型健康範圍。落在範圍外會標示偏低或偏高，計畫會調整以把它拉回範圍內。",
+    range_weight:"體重", range_smm:"骨骼肌", range_bodyFat:"體脂肪重",
+    range_tbw:"身體總水分", range_protein:"蛋白質", range_minerals:"礦物質",
+    profile_title:"我的", your_details:"你的資料",
+    p_goal:"目標", p_agesex:"年齡／性別", p_hw:"身高／體重", p_bodyfat:"體脂率",
+    p_activity:"活動量", p_budget:"預算", p_climatearea:"氣候／地區",
+    log_weight:"記錄今天的體重", save_weight:"儲存體重",
+    appearance:"外觀與單位", theme:"主題", light:"淺色", dark:"深色",
+    units:"單位", unit_metric:"公制（公斤、公分）", unit_imperial:"英制（磅、英尺）",
+    language:"語言",
+    adjust_goal:"調整目標",
+    autodetected:(g)=>`系統自動判定為「${g}」。如有需要可手動覆蓋：`,
+    manage:"管理", retake:"重新評估", export_data:"匯出我的資料（JSON）", delete_all:"刪除所有資料",
+    privacy_title:"隱私與安全",
+    privacy_body:"Vita 完全在你的裝置上執行。沒有帳號、沒有伺服器、不連網——你的資料永遠不會離開這個瀏覽器。本程式提供一般保健指引，<b>不能取代專業醫療建議</b>。",
+    confirm_delete:"要從這台裝置刪除所有 Vita 資料嗎？此動作無法復原。",
+    toast_weight_saved:"已儲存體重", toast_units:"已更新單位", toast_goal:"已更新目標",
+    toast_lang:"已更新語言", toast_exported:"已匯出", toast_plan_copied:"已複製計畫到剪貼簿",
+    toast_plan_copied2:"已複製計畫", toast_plan_fail:"無法複製", toast_realistic:"請輸入合理的體重",
+    pt_title:"Vita — 我的健康計畫", pt_footer:"僅供衛教參考，非醫療建議。由 Vita 製作。",
+    ob_welcome_t:"歡迎使用 Vita",
+    ob_welcome_sub:"你的私人健康助理。回答幾個問題，我會依你的身體、預算與居住地，為你打造每日計畫。",
+    name_q:"我該怎麼稱呼你？（可選）", name_ph:"你的名字",
+    sample_card:"✨ 第一次來嗎？載入範例檔看看 Vita 怎麼運作——之後再用你自己的資料重做一次。",
+    sample_btn:"試用範例檔",
+    privacy_line:"🔒 一切都留在你的裝置上。沒有帳號、不連網。",
+    ob_body_t:"你的身體", ob_body_sub:"這些能讓我準確計算你的能量需求。",
+    sex_label:"生理性別（用於代謝公式）", male:"男性", female:"女性",
+    age:"年齡", height:"身高", weight:"體重", bodyfat_opt:"體脂率（可選）", activity_q:"你的活動量？",
+    ob_feel_t:"你最近覺得如何？", ob_feel_sub:"誠實的滑桿能幫我加入合適的恢復與身心項目。",
+    feel_energy:"精力", feel_sleep:"睡眠品質", feel_stress:"壓力程度",
+    low_word:"低", high_word:"高",
+    ob_budget_t:"你的預算", ob_budget_sub:"我會建議符合預算的食物。每種預算都有很棒的計畫。",
+    bud_low_t:"預算有限", bud_low_s:"便宜、營養密集的常備食材",
+    bud_med_t:"中等", bud_med_s:"均衡的高 CP 值選擇",
+    bud_high_t:"寬裕", bud_high_s:"多樣與便利的高階選擇",
+    ob_where_t:"你的居住地", ob_where_sub:"氣候影響水分與訓練；地區影響取得食物的方便度。",
+    climate_label:"氣候",
+    cl_hot_t:"炎熱", cl_hot_s:"高溫會提高你的水分需求",
+    cl_temp_t:"溫和", cl_temp_s:"溫和、彈性大",
+    cl_cold_t:"寒冷", cl_cold_s:"口渴感降低——請定時小口喝",
+    area_label:"地區",
+    ar_urban_t:"都市", ar_urban_s:"選擇多、有健身房，花費較高",
+    ar_rural_t:"鄉村", ar_rural_s:"常備食材與徒手訓練",
+    cont:"繼續", back:"返回", build_plan:"建立我的計畫 ✨",
+    v_age:"請輸入有效的年齡", v_height:"請輸入有效的身高", v_weight:"請輸入有效的體重",
+    v_budget:"請選擇預算", v_climate:"請選擇氣候", v_area:"請選擇地區",
+    toast_ready:"你的計畫已就緒 🎉", toast_sample:"已載入範例檔",
+    units_short_metric:"公制（公斤、公分）", units_short_imperial:"英制（磅、英尺）"
+  }
+};
+
+/* i18n label helpers */
+function goalLabel(g){ return t("goal_"+g+"_label"); }
+function weeklyLabel(g){ return t("weekly_"+g); }
+function goalShort(g){ return t("goal_"+g+"_short"); }
+function actLabel(k){ return t("act_"+k); }
+function catLabel(c){ return t("cat_"+c); }
+
 /* ---------- Sample profile (generic demo data — not a real person) ---------- */
 const INBODY_PRESET = {
   name:"", sex:"male", age:25, height:175, weight:66, bodyFat:14,
@@ -386,7 +836,6 @@ const INBODY_RANGES = {
    HEALTH ENGINE  (validated against clinical-nutrition expert guidance)
    ========================================================================= */
 const ACTIVITY = { sedentary:1.2, light:1.375, moderate:1.55, very:1.725, athlete:1.9 };
-const ACTIVITY_LABEL = { sedentary:"Sedentary", light:"Light (1–3 d/wk)", moderate:"Moderate (3–5 d/wk)", very:"Very active (6–7 d/wk)", athlete:"Athlete (2×/day)" };
 
 function bmi(kg, cm){ const m=cm/100; return kg/(m*m); }
 
@@ -445,10 +894,10 @@ function compute(p){
 /* ---------- Red-flag safety screen ---------- */
 function redFlags(p){
   const flags=[]; const b=bmi(p.weight,p.height);
-  if(p.age < 18) flags.push("You're under 18 — growth-stage nutrition is different. Please work with a pediatrician or registered dietitian rather than following automated targets.");
-  if(b < 16) flags.push("Your BMI is in the severely underweight range (<16). Please see a doctor before changing your diet or exercise.");
-  if(b >= 35) flags.push("Your BMI is in a range where personalized medical supervision is strongly recommended. Please consult a clinician.");
-  if(p.feelings && p.feelings.energy<=2 && p.feelings.sleep<=2) flags.push("You reported very low energy and sleep. Persistent exhaustion can signal an underlying issue worth discussing with a doctor.");
+  if(p.age < 18) flags.push(t("rf_under18"));
+  if(b < 16) flags.push(t("rf_bmi16"));
+  if(b >= 35) flags.push(t("rf_bmi35"));
+  if(p.feelings && p.feelings.energy<=2 && p.feelings.sleep<=2) flags.push(t("rf_lowenergy"));
   return flags;
 }
 
@@ -456,154 +905,83 @@ function redFlags(p){
    CHECKLIST GENERATOR — daily requirements per goal, tuned by budget/climate
    ========================================================================= */
 function buildChecklist(p, c){
-  const L = []; // {id, cat, title, target}
+  const out = []; // {id, cat, title, target}  — cat is a stable key; display via catLabel()
   const water = (c.hydration/1000).toFixed(1);
   const mealCount = c.goal==="gain" ? "4–5" : "3–4";
 
   // Nutrition + protein
   if(c.goal==="gain"){
-    L.push({id:"cal", cat:"Nutrition", title:"Hit your calorie surplus", target:`≈ ${c.calories} kcal across ${mealCount} meals — don't skip any`});
-    L.push({id:"snack", cat:"Nutrition", title:"Add one calorie-dense snack", target:"Nuts, nut butter, dried fruit, or a whole-milk smoothie"});
+    out.push({id:"cal", cat:"Nutrition", title:t("ck_cal_gain_t"), target:t("ck_cal_gain_d")(c.calories, mealCount)});
+    out.push({id:"snack", cat:"Nutrition", title:t("ck_snack_t"), target:t("ck_snack_d")});
   } else if(c.goal==="lose"){
-    L.push({id:"cal", cat:"Nutrition", title:"Stay in your calorie target", target:`≈ ${c.calories} kcal — high-volume, high-fiber foods`});
-    L.push({id:"fiber", cat:"Nutrition", title:"Get 25–35 g fiber", target:"Veg, legumes, whole grains — keeps you full"});
+    out.push({id:"cal", cat:"Nutrition", title:t("ck_cal_lose_t"), target:t("ck_cal_lose_d")(c.calories)});
+    out.push({id:"fiber", cat:"Nutrition", title:t("ck_fiber_t"), target:t("ck_fiber_d")});
   } else {
-    L.push({id:"cal", cat:"Nutrition", title:"Eat to your target", target:`≈ ${c.calories} kcal — balanced plate (½ veg, ¼ protein, ¼ carbs)`});
+    out.push({id:"cal", cat:"Nutrition", title:t("ck_cal_maintain_t"), target:t("ck_cal_maintain_d")(c.calories)});
   }
-  L.push({id:"protein", cat:"Protein", title:`Reach ${c.proteinG} g protein`, target:`Spread across meals (~${Math.round(c.proteinG/ (c.goal==="gain"?5:4))} g each)`});
+  out.push({id:"protein", cat:"Protein", title:t("ck_protein_t")(c.proteinG), target:t("ck_protein_d")(Math.round(c.proteinG/(c.goal==="gain"?5:4)))});
 
   // Hydration
-  L.push({id:"water", cat:"Hydration", title:`Drink ${water} L of water`, target: p.climate==="hot" ? "Extra for heat — add electrolytes if sweating >1 h" : p.climate==="cold" ? "Thirst is blunted in cold — sip on a schedule" : "Spread through the day"});
+  out.push({id:"water", cat:"Hydration", title:t("ck_water_t")(water), target: p.climate==="hot" ? t("ck_water_d_hot") : p.climate==="cold" ? t("ck_water_d_cold") : t("ck_water_d_temp")});
 
   // Training
   if(c.goal==="gain"){
-    L.push({id:"train", cat:"Movement", title:"Resistance training (progressive overload)", target:"4–5×/week — add a little load or reps each week"});
-    L.push({id:"creatine", cat:"Movement", title:"Creatine monohydrate (optional)", target:"3–5 g/day — evidence-backed for lean gain"});
+    out.push({id:"train", cat:"Movement", title:t("ck_train_gain_t"), target:t("ck_train_gain_d")});
+    out.push({id:"creatine", cat:"Movement", title:t("ck_creatine_t"), target:t("ck_creatine_d")});
   } else if(c.goal==="lose"){
-    L.push({id:"train", cat:"Movement", title:"Resistance training", target:"3–4×/week to keep muscle while losing fat"});
-    L.push({id:"steps", cat:"Movement", title:"8,000–12,000 steps", target:"Plus 2–3 Zone-2 cardio sessions/week"});
+    out.push({id:"train", cat:"Movement", title:t("ck_train_lose_t"), target:t("ck_train_lose_d")});
+    out.push({id:"steps", cat:"Movement", title:t("ck_steps_t"), target:t("ck_steps_d")});
   } else {
-    L.push({id:"train", cat:"Movement", title:"Move your body", target:"3× resistance + 2× cardio; 7–10k steps/day"});
+    out.push({id:"train", cat:"Movement", title:t("ck_train_maintain_t"), target:t("ck_train_maintain_d")});
   }
-  L.push({id:"mobility", cat:"Movement", title:"10 min mobility / stretch", target:"Especially on training days"});
+  out.push({id:"mobility", cat:"Movement", title:t("ck_mobility_t"), target:t("ck_mobility_d")});
 
   // Sleep + recovery + mind
-  L.push({id:"sleep", cat:"Recovery", title:"Sleep 7.5–9 hours", target: c.goal==="gain" ? "Muscle is built during recovery" : "Protects appetite hormones & mood"});
-  if(p.feelings && p.feelings.stress>=7) L.push({id:"calm", cat:"Mind", title:"5-min breathing / wind-down", target:"You flagged high stress — small resets help"});
+  out.push({id:"sleep", cat:"Recovery", title:t("ck_sleep_t"), target: c.goal==="gain" ? t("ck_sleep_d_gain") : t("ck_sleep_d_other")});
+  if(p.feelings && p.feelings.stress>=7) out.push({id:"calm", cat:"Mind", title:t("ck_calm_t"), target:t("ck_calm_d")});
 
   // Weekly
-  L.push({id:"weighin", cat:"Weekly", title:"Weekly weigh-in", target:`Same time & conditions — aim ${c.gm.weekly}`});
+  out.push({id:"weighin", cat:"Weekly", title:t("ck_weighin_t"), target:t("ck_weighin_d")(weeklyLabel(c.goal))});
 
-  return L;
+  return out;
 }
 
-/* ---------- Budget-tiered, goal-aware food suggestions ---------- */
-const FOODS = {
-  low:{
-    title:"Budget-friendly powerhouses",
-    items:["Eggs — cheapest complete protein","Whole or powdered milk — calorie + protein dense","Dried beans, lentils, chickpeas","Peanut butter & peanuts","Oats (blend into shakes)","Rice, potatoes, bananas","Canned tuna / sardines (omega-3)","Bulk whey protein — cheapest $/g supplement"]
-  },
-  medium:{
-    title:"Balanced value picks",
-    items:["Chicken thighs/breast, ground beef","Greek yogurt, cottage cheese","Frozen mixed veg & berries","Olive oil, mixed nuts, trail mix","Tofu / tempeh / edamame","Whole-grain pasta, sweet potatoes"]
-  },
-  high:{
-    title:"Premium nutrient-dense",
-    items:["Salmon, steak, fresh fish","Grass-fed dairy & aged cheese","Macadamias, almonds, cashews","Avocados & specialty nut butters","Quality mass-gainer shakes","Wide fresh-produce variety"]
-  }
-};
-
-/* ---------- Sample one-day meal plan (budget + goal aware) ---------- */
-const PROTEIN_SRC = {
-  low:["eggs","whole milk","lentils","canned tuna","peanut butter","bulk whey"],
-  medium:["chicken","Greek yogurt","ground beef","cottage cheese","tofu","whey"],
-  high:["salmon","steak","grass-fed dairy","fresh fish","quality whey","skyr"]
-};
-const CARB_SRC = {
-  low:["oats","rice","potatoes","bananas","bread"],
-  medium:["sweet potato","whole-grain pasta","oats","rice","fruit"],
-  high:["sourdough","quinoa","sweet potato","fresh fruit","oats"]
-};
+/* ---------- Sample one-day meal plan (budget + goal + language aware) ---------- */
 function sampleMealPlan(p, c){
-  const ps = PROTEIN_SRC[p.budget]||PROTEIN_SRC.medium;
-  const cs = CARB_SRC[p.budget]||CARB_SRC.medium;
+  const D=L();
+  const ps = D.protein_src[p.budget]||D.protein_src.medium;
+  const cs = D.carb_src[p.budget]||D.carb_src.medium;
+  const J = D.meal_join;
+  const join = (arr)=>arr.filter(Boolean).map(cap).join(J);   // cap() is a no-op for non-Latin text
   const gain = c.goal==="gain", lose = c.goal==="lose";
-  // meal templates; kcal split sums to ~target
   const meals = gain ? [
-    {ico:"🌅", name:"Big breakfast", foods:`${cap(cs[0])} + ${ps[1]} + ${ps[4]||"nut butter"} + banana`, frac:.22},
-    {ico:"🥪", name:"Mid-morning", foods:`${cap(ps[0])} + ${cs[4]||"bread"}`, frac:.13},
-    {ico:"🍽️", name:"Lunch", foods:`${cap(cs[1])} + ${ps[3]||ps[0]} + olive oil + veg`, frac:.25},
-    {ico:"🥤", name:"Mass smoothie", foods:`${cap(ps[1])} + ${cs[0]} + ${ps[5]||"whey"} + ${ps[4]||"nut butter"}`, frac:.16},
-    {ico:"🌙", name:"Dinner", foods:`${cap(ps[2]||ps[0])} + ${cs[2]||cs[1]} + greens`, frac:.24}
+    {ico:"🌅", name:t("mn_bigbreakfast"), foods:join([cs[0], ps[1], ps[4]||t("w_nutbutter"), t("w_banana")]), frac:.22},
+    {ico:"🥪", name:t("mn_midmorning"), foods:join([ps[0], cs[4]||t("w_bread")]), frac:.13},
+    {ico:"🍽️", name:t("mn_lunch"), foods:join([cs[1], ps[3]||ps[0], t("w_oliveoil"), t("w_veg")]), frac:.25},
+    {ico:"🥤", name:t("mn_smoothie"), foods:join([ps[1], cs[0], ps[5]||t("w_whey"), ps[4]||t("w_nutbutter")]), frac:.16},
+    {ico:"🌙", name:t("mn_dinner"), foods:join([ps[2]||ps[0], cs[2]||cs[1], t("w_greens")]), frac:.24}
   ] : lose ? [
-    {ico:"🌅", name:"Breakfast", foods:`${cap(ps[1])} + berries + ${cs[2]||"oats"} (small)`, frac:.25},
-    {ico:"🍽️", name:"Lunch", foods:`${cap(ps[0])} + big salad + ${cs[1]}`, frac:.32},
-    {ico:"🍎", name:"Snack", foods:`${cap(ps[3]||ps[0])} + fruit / veg sticks`, frac:.13},
-    {ico:"🌙", name:"Dinner", foods:`${cap(ps[2]||ps[0])} + lots of veg + small ${cs[0]}`, frac:.30}
+    {ico:"🌅", name:t("mn_breakfast"), foods:join([ps[1], t("w_berries"), cs[2]||cs[0], t("w_small")]), frac:.25},
+    {ico:"🍽️", name:t("mn_lunch"), foods:join([ps[0], t("w_bigsalad"), cs[1]]), frac:.32},
+    {ico:"🍎", name:t("mn_snack"), foods:join([ps[3]||ps[0], t("w_fruitveg")]), frac:.13},
+    {ico:"🌙", name:t("mn_dinner"), foods:join([ps[2]||ps[0], t("w_lotsveg"), cs[0]]), frac:.30}
   ] : [
-    {ico:"🌅", name:"Breakfast", foods:`${cap(cs[0])} + ${ps[1]} + fruit`, frac:.27},
-    {ico:"🍽️", name:"Lunch", foods:`${cap(ps[0])} + ${cs[1]} + veg`, frac:.34},
-    {ico:"🍎", name:"Snack", foods:`${cap(ps[3]||ps[0])} + nuts`, frac:.12},
-    {ico:"🌙", name:"Dinner", foods:`${cap(ps[2]||ps[0])} + ${cs[2]||cs[1]} + greens`, frac:.27}
+    {ico:"🌅", name:t("mn_breakfast"), foods:join([cs[0], ps[1], t("w_fruit")]), frac:.27},
+    {ico:"🍽️", name:t("mn_lunch"), foods:join([ps[0], cs[1], t("w_veg")]), frac:.34},
+    {ico:"🍎", name:t("mn_snack"), foods:join([ps[3]||ps[0], t("w_nuts")]), frac:.12},
+    {ico:"🌙", name:t("mn_dinner"), foods:join([ps[2]||ps[0], cs[2]||cs[1], t("w_greens")]), frac:.27}
   ];
   return meals.map(m=>({...m, kcal:Math.round(c.calories*m.frac/10)*10, protein:Math.round(c.proteinG*m.frac)}));
 }
 
 /* =========================================================================
-   TIPS
+   TIPS — pulled from the active language dictionary (L().tips)
    ========================================================================= */
-const TIPS = {
-  gain:[
-    {t:"Liquid calories win", b:"Hard to eat enough? Blend whole milk + oats + peanut butter + banana + whey. ~700 kcal you can drink without feeling stuffed."},
-    {t:"Eat on a clock", b:"Underweight bodies often under-eat from low appetite, not choice. Set meal alarms — consistency beats willpower."},
-    {t:"Patience is the plan", b:"Aim for slow, mostly-lean gain (~0.25–0.5 kg/wk). A big InBody target is a 12–18 month journey, not a sprint."},
-    {t:"Train, don't just eat", b:"A surplus without resistance training adds mostly fat. Lift 4–5×/week so the extra calories build muscle."},
-    {t:"Add, don't replace", b:"Bolt calories onto meals you already eat — a handful of nuts, a drizzle of olive oil, an extra scoop of rice. Easier than forcing a whole new meal."},
-    {t:"Progressive overload", b:"Each week aim to add a little weight or a rep. Steady progression on the bar is what tells your body to build new muscle."},
-    {t:"Don't fear the rest day", b:"Muscle grows between sessions, not during them. 7.5–9 h sleep and full rest days are part of the program, not a break from it."},
-    {t:"Track to believe it", b:"On low-appetite days you'll swear you ate enough when you didn't. A few days of logging shows the real gap to your surplus."}
-  ],
-  lose:[
-    {t:"Protein protects muscle", b:"In a deficit, high protein (1.8–2.4 g/kg) keeps your hard-earned muscle and keeps you full."},
-    {t:"Drink before you eat", b:"A glass of water before meals reduces accidental over-eating — thirst masquerades as hunger."},
-    {t:"Lift to keep the engine", b:"Cardio burns calories today; resistance training keeps your metabolism high tomorrow."},
-    {t:"Volume over density", b:"Fill the plate with vegetables and lean protein — high volume, low calories. You eat more and feel fuller for the same energy."},
-    {t:"Steps are silent cardio", b:"A daily walk target (8–12k steps) burns meaningful calories without the recovery cost of hard cardio."},
-    {t:"Plateaus are normal", b:"Weight drops in steps, not a smooth line. Hold the course for 2–3 weeks before changing anything; water shifts hide real fat loss."},
-    {t:"Slow is sustainable", b:"Aim for ~0.5–0.75 kg/week. Faster loss costs you muscle and rarely sticks."}
-  ],
-  maintain:[
-    {t:"Consistency compounds", b:"Maintenance is a skill. Small daily habits beat dramatic resets every time."},
-    {t:"Strength is longevity", b:"Keep lifting — muscle mass is one of the best predictors of healthy aging."},
-    {t:"Mind the drift", b:"Maintenance isn't autopilot. A weekly weigh-in catches slow drift early, while it's a 1 kg fix and not a 5 kg one."},
-    {t:"Train for life, not looks", b:"Mix strength, a little cardio, and mobility. The goal is a body that moves well and feels good for decades."},
-    {t:"Protein still matters", b:"Even at maintenance, 1.4–1.8 g/kg protein supports muscle, recovery, and steady appetite."}
-  ],
-  general:[
-    {t:"Hydration is a quiet superpower", b:"Even mild dehydration saps energy, focus, and training quality. Keep a bottle visible — out of sight is out of mind."},
-    {t:"Sleep is the cheat code", b:"Nothing else on this list works well on 5 hours. Protect a consistent bedtime; it improves appetite, mood, and recovery at once."},
-    {t:"Eat well on any budget", b:"Eggs, oats, beans, frozen veg, and bulk whey deliver elite nutrition for very little. Healthy doesn't have to be expensive."},
-    {t:"Cook once, eat thrice", b:"Batch-cook a protein and a grain on a free day. Future-you makes far better choices when good food is already in the fridge."},
-    {t:"Don't break the chain", b:"Missing one day means nothing; missing the day after is what hurts. Aim to never skip twice in a row."},
-    {t:"Move every hour", b:"Long sitting blunts the benefits of a single workout. A 2-minute stand-and-stretch each hour adds up quietly."},
-    {t:"Progress isn't linear", b:"Energy, weight, and motivation all wobble day to day. Judge yourself on the weekly trend, not any single morning."}
-  ]
-};
 function tipFor(goal, day){
-  const pool = (TIPS[goal]||TIPS.maintain).concat(TIPS.general);
+  const T = L().tips || TIPS_EN;
+  const pool = (T[goal]||T.maintain).concat(T.general);
   return pool[((day % pool.length)+pool.length) % pool.length];
 }
-
-/* ---------- Climate copy ---------- */
-const CLIMATE_NOTE = {
-  hot:"Hot climate: hydrate more (target already raised), train early morning or evening, watch for heat illness, replace electrolytes after long sweat sessions.",
-  temperate:"Temperate climate: standard hydration and training timing — you've got flexibility.",
-  cold:"Cold climate: thirst is suppressed, so drink on a schedule; warm up longer before training; warm fluids and indoor options help consistency."
-};
-const AREA_NOTE = {
-  urban:"Urban: lots of food variety and gyms, but it costs more — batch-cook and watch portions of convenience food.",
-  rural:"Rural: lean on shelf-stable staples (oats, beans, eggs, milk powder, canned fish), buy in bulk, and use bodyweight / minimal-equipment training plus incidental daily activity."
-};
 
 /* =========================================================================
    PROGRESS / STREAK
@@ -654,7 +1032,7 @@ function ringSVG(pct){
     <circle class="track" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"/>
     <circle class="fill" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"
       stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>
-  </svg><div class="center"><b>${Math.round(pct*100)}%</b><span>done today</span></div></div>`;
+  </svg><div class="center"><b>${Math.round(pct*100)}%</b><span>${t("ring_done")}</span></div></div>`;
 }
 
 function renderToday(){
@@ -665,21 +1043,21 @@ function renderToday(){
   const flags = redFlags(state.profile);
   const dayIdx = Math.floor(Date.now()/86400000);
   const tip = tipFor(c.goal, dayIdx);
-  const firstName = state.profile.name ? esc(state.profile.name.split(" ")[0]) : "there";
+  const firstName = state.profile.name ? esc(state.profile.name.split(" ")[0]) : t("hi_there");
   const hr = new Date().getHours();
-  const greet = hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";
+  const greet = hr<12?t("greet_morning"):hr<18?t("greet_afternoon"):t("greet_evening");
 
   let html = `<p class="muted" style="margin-bottom:2px">${greet},</p><h1>${firstName} 👋</h1>`;
 
   if(flags.length){
-    html += `<div class="alert danger"><b>⚠️ Please check with a professional</b>${flags.map(f=>`<div>• ${esc(f)}</div>`).join("")}</div>`;
+    html += `<div class="alert danger"><b>${t("redflag_header")}</b>${flags.map(f=>`<div>• ${esc(f)}</div>`).join("")}</div>`;
   }
 
   const doneCount = state.checklist.filter(it=>today[it.id]).length;
   html += `<div class="card"><div class="ring-wrap">${ringSVG(pct)}
-    <div class="rw-text"><div class="pill">🔥 ${streak()} day streak</div>
-    <p style="margin:10px 0 0; font-weight:600">${c.gm.icon} ${c.gm.label}</p>
-    <p class="small muted" style="margin:2px 0 0">${doneCount}/${state.checklist.length} requirements complete</p></div></div></div>`;
+    <div class="rw-text"><div class="pill">${t("streak")(streak())}</div>
+    <p style="margin:10px 0 0; font-weight:600">${c.gm.icon} ${goalLabel(c.goal)}</p>
+    <p class="small muted" style="margin:2px 0 0">${t("reqs_complete")(doneCount, state.checklist.length)}</p></div></div></div>`;
 
   // Water quick-counter
   const wTarget = waterTarget();
@@ -688,26 +1066,26 @@ function renderToday(){
   const targetL = (c.hydration/1000).toFixed(1);
   const wPct = Math.round(glasses/wTarget*100);
   html += `<div class="card water-card">
-    <div class="ci-cat" style="color:var(--secondary)">Hydration</div>
-    <div class="water-count">💧 ${glasses} / ${wTarget} glasses</div>
-    <div class="ci-target">${litres} of ${targetL} L · one glass = ${GLASS_ML} ml</div>
+    <div class="ci-cat" style="color:var(--secondary)">${t("hydration")}</div>
+    <div class="water-count">${t("water_count")(glasses, wTarget)}</div>
+    <div class="ci-target">${t("water_sub")(litres, targetL, GLASS_ML)}</div>
     <div class="water-bar"><span style="width:${wPct}%"></span></div>
     <div class="water-btns">
-      <button class="water-btn" id="water-minus" aria-label="Remove a glass" ${glasses<=0?"disabled":""}>−</button>
-      <button class="water-btn add" id="water-plus" aria-label="Add a glass" ${glasses>=wTarget?"disabled":""}>${glasses>=wTarget?"Goal reached 🎉":"+ Add a glass"}</button>
+      <button class="water-btn" id="water-minus" aria-label="${t("water_minus_aria")}" ${glasses<=0?"disabled":""}>−</button>
+      <button class="water-btn add" id="water-plus" aria-label="${t("water_add_aria")}" ${glasses>=wTarget?"disabled":""}>${glasses>=wTarget?t("water_goal"):t("water_add")}</button>
     </div></div>`;
 
-  html += `<div class="section-label">Today's requirements</div>`;
+  html += `<div class="section-label">${t("todays_reqs")}</div>`;
   html += state.checklist.filter(item=>item.id!=="water").map(item=>{
     const done = !!today[item.id];
     return `<div class="check-item ${done?"done":""}" data-id="${item.id}" role="button" tabindex="0" aria-pressed="${done}" aria-label="${esc(item.title)}">
       <div class="check-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="ci-body"><div class="ci-cat">${item.cat}</div><div class="ci-title">${esc(item.title)}</div>
+      <div class="ci-body"><div class="ci-cat">${catLabel(item.cat)}</div><div class="ci-title">${esc(item.title)}</div>
       <div class="ci-target">${esc(item.target)}</div></div></div>`;
   }).join("");
 
   html += `<div class="tip"><div class="tip-ico">💡</div><div><h3>${esc(tip.t)}</h3><p>${esc(tip.b)}</p></div></div>`;
-  html += `<p class="small muted center mt">Educational guidance, not medical advice.</p>`;
+  html += `<p class="small muted center mt">${t("edu_disclaimer")}</p>`;
 
   $("#page-today").innerHTML = html;
   // checklist toggles (mouse + keyboard)
@@ -723,7 +1101,7 @@ function renderToday(){
     const wasBelow=(t.waterGlasses||0)<tgt;
     t.waterGlasses=n; t.water = n>=tgt;       // syncs the "water" requirement
     saveState();
-    if(n>=tgt && wasBelow) toast("Hydration goal hit 💧");
+    if(n>=tgt && wasBelow) toast(t("toast_hydration"));
     renderToday();
   };
   $("#water-plus") && $("#water-plus").addEventListener("click",()=>setGlasses((ensureToday().waterGlasses||0)+1));
@@ -733,30 +1111,29 @@ function renderToday(){
 function renderPlan(){
   const c = compute(state.profile);
   const p = state.profile;
-  const food = FOODS[p.budget] || FOODS.medium;
 
-  let html = `<h1>Your plan</h1><p class="muted">Tailored to your body, budget, and where you live. Re-take the assessment anytime in Profile.</p>
+  let html = `<h1>${t("plan_title")}</h1><p class="muted">${t("plan_sub")}</p>
   <button class="btn secondary sm" id="sharePlanBtn" style="margin-bottom:var(--space-2)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" stroke-linecap="round"/></svg>
-    Share / copy my plan</button>`;
+    ${t("share_plan")}</button>`;
 
   // Targets card
-  html += `<div class="section-label">Daily targets</div>
+  html += `<div class="section-label">${t("daily_targets")}</div>
   <div class="stat-grid">
-    <div class="stat"><b>${c.calories}</b><span>kcal / day</span></div>
-    <div class="stat"><b>${c.proteinG} g</b><span>protein</span></div>
-    <div class="stat"><b>${c.carbG} g</b><span>carbs</span></div>
-    <div class="stat"><b>${c.fatG} g</b><span>fat</span></div>
-    <div class="stat"><b>${(c.hydration/1000).toFixed(1)} L</b><span>water</span></div>
-    <div class="stat"><b>${c.bmi.toFixed(1)}</b><span>BMI</span></div>
+    <div class="stat"><b>${c.calories}</b><span>${t("st_kcal")}</span></div>
+    <div class="stat"><b>${c.proteinG} g</b><span>${t("st_protein")}</span></div>
+    <div class="stat"><b>${c.carbG} g</b><span>${t("st_carbs")}</span></div>
+    <div class="stat"><b>${c.fatG} g</b><span>${t("st_fat")}</span></div>
+    <div class="stat"><b>${(c.hydration/1000).toFixed(1)} L</b><span>${t("st_water")}</span></div>
+    <div class="stat"><b>${c.bmi.toFixed(1)}</b><span>${t("st_bmi")}</span></div>
   </div>
-  <div class="card flat small"><b>How we got here</b><br>BMR ${c.bmr} kcal (Mifflin-St Jeor) × ${ACTIVITY[p.activity]} activity = TDEE ${c.tdee} kcal, adjusted for your goal (${c.gm.weekly}).</div>`;
+  <div class="card flat small"><b>${t("how_title")}</b><br>${t("how_body")(c.bmr, ACTIVITY[p.activity], c.tdee, weeklyLabel(c.goal))}</div>`;
 
   // Requirements grouped
   const cats = [...new Set(state.checklist.map(i=>i.cat))];
-  html += `<div class="section-label">Your requirements</div>`;
+  html += `<div class="section-label">${t("your_reqs")}</div>`;
   cats.forEach(cat=>{
-    html += `<div class="card"><h3>${cat}</h3><ul class="list-clean">`;
+    html += `<div class="card"><h3>${catLabel(cat)}</h3><ul class="list-clean">`;
     state.checklist.filter(i=>i.cat===cat).forEach(i=>{
       html += `<li><span><b>${esc(i.title)}</b><br><span class="small muted">${esc(i.target)}</span></span></li>`;
     });
@@ -764,25 +1141,25 @@ function renderPlan(){
   });
 
   // Food suggestions
-  html += `<div class="section-label">Eat well on your budget</div>
-    <div class="card"><h3>${food.title}</h3><div class="chiprow" style="margin-top:8px">
-    ${food.items.map(f=>`<span class="chip">${esc(f)}</span>`).join("")}</div>
-    ${c.goal==="gain"?`<p class="small muted mt">Tip: liquid calories (smoothies) are the easiest way to hit a surplus when appetite is low.</p>`:""}</div>`;
+  html += `<div class="section-label">${t("eat_well")}</div>
+    <div class="card"><h3>${t("foods_"+p.budget+"_title")}</h3><div class="chiprow" style="margin-top:8px">
+    ${t("foods_"+p.budget+"_items").map(f=>`<span class="chip">${esc(f)}</span>`).join("")}</div>
+    ${c.goal==="gain"?`<p class="small muted mt">${t("smoothie_tip")}</p>`:""}</div>`;
 
   // Sample day
   const meals = sampleMealPlan(p, c);
-  html += `<div class="section-label">A sample day (~${c.calories} kcal)</div><div class="card">`;
+  html += `<div class="section-label">${t("sample_day")(c.calories)}</div><div class="card">`;
   meals.forEach(m=>{
     html += `<div class="meal"><span class="meal-ico">${m.ico}</span>
       <div style="flex:1; min-width:0"><div class="meal-name">${esc(m.name)}</div><div class="meal-foods">${esc(m.foods)}</div></div>
-      <div style="text-align:right"><div class="meal-kcal">${m.kcal} kcal</div><div class="small muted">${m.protein}g P</div></div></div>`;
+      <div style="text-align:right"><div class="meal-kcal">${t("meal_kcal")(m.kcal)}</div><div class="small muted">${t("meal_protein")(m.protein)}</div></div></div>`;
   });
-  html += `<p class="small muted mt">A flexible template, not a prescription — swap foods you like from the list above. Portions scale to your target.</p></div>`;
+  html += `<p class="small muted mt">${t("meal_note")}</p></div>`;
 
   // Climate / area
-  html += `<div class="section-label">Where you live</div>
-    <div class="tip"><div class="tip-ico">🌡️</div><div><h3>${cap(p.climate)} climate</h3><p>${esc(CLIMATE_NOTE[p.climate]||"")}</p></div></div>
-    <div class="tip"><div class="tip-ico">📍</div><div><h3>${cap(p.area)} area</h3><p>${esc(AREA_NOTE[p.area]||"")}</p></div></div>`;
+  html += `<div class="section-label">${t("where_live")}</div>
+    <div class="tip"><div class="tip-ico">🌡️</div><div><h3>${t("climate_"+p.climate+"_title")}</h3><p>${esc(t("climate_note_"+p.climate)||"")}</p></div></div>
+    <div class="tip"><div class="tip-ico">📍</div><div><h3>${t("area_"+p.area+"_title")}</h3><p>${esc(t("area_note_"+p.area)||"")}</p></div></div>`;
 
   $("#page-plan").innerHTML = html;
   $("#sharePlanBtn") && $("#sharePlanBtn").addEventListener("click", sharePlan);
@@ -790,7 +1167,7 @@ function renderPlan(){
 
 function renderInsights(){
   const c = compute(state.profile);
-  let html = `<h1>Insights</h1>`;
+  let html = `<h1>${t("insights_title")}</h1>`;
 
   // 7-day completion stats
   const days=[]; const d=new Date();
@@ -800,28 +1177,28 @@ function renderInsights(){
   const bestStreak = streak();
 
   html += `<div class="stat-grid">
-    <div class="stat"><b>${avg7}%</b><span>7-day completion</span></div>
-    <div class="stat"><b>🔥 ${bestStreak}</b><span>day streak</span></div>
+    <div class="stat"><b>${avg7}%</b><span>${t("st_7day")}</span></div>
+    <div class="stat"><b>🔥 ${bestStreak}</b><span>${t("st_daystreak")}</span></div>
   </div>`;
 
   // Heatmap 28 days
-  html += `<div class="section-label">Last 4 weeks</div><div class="card"><div class="heat">`;
+  html += `<div class="section-label">${t("last4")}</div><div class="card"><div class="heat">`;
   days.forEach(x=>{
     const lvl = x.v>=0.9?"l3":x.v>=0.6?"l2":x.v>0?"l1":"";
     html += `<div class="cell ${lvl}" title="${x.k}: ${Math.round(x.v*100)}%"></div>`;
   });
-  html += `</div><p class="small muted mt">Each square is a day — greener means more requirements completed.</p></div>`;
+  html += `</div><p class="small muted mt">${t("heat_caption")}</p></div>`;
 
   // Body composition (when an InBody scan is loaded)
   if(state.profile.inbody){ html += renderComposition(state.profile); }
 
   // Weight trend
-  html += `<div class="section-label">Weight trend</div>`;
+  html += `<div class="section-label">${t("weight_trend")}</div>`;
   const log = state.weightLog||[];
   if(log.length>=2){
     html += `<div class="card">${sparkline(log, state.profile.inbody?state.profile.inbody.target:null)}</div>`;
   } else {
-    html += `<div class="card flat"><p class="small muted">Log your weight (Profile → Log weight) a couple of times to see your trend and how you're tracking toward your target.</p></div>`;
+    html += `<div class="card flat"><p class="small muted">${t("weight_empty")}</p></div>`;
   }
 
   // current vs target
@@ -831,23 +1208,23 @@ function renderInsights(){
     const diffKg = target - cur;
     const gapDisp = fmtWeight(Math.abs(diffKg));
     const weeks = Math.max(1, Math.round(Math.abs(diffKg)/0.35));
-    const rate = units()==="imperial" ? "~0.8 lb/week" : "~0.35 kg/week";
-    html += `<div class="tip"><div class="tip-ico">🎯</div><div><h3>Target ${fmtWeight(target)}</h3>
-      <p>You're at ${fmtWeight(cur)} — ${diffKg>0?`${gapDisp} to gain`:`${gapDisp} above target`}. At a healthy ${rate} that's about ${weeks} weeks. Slow and steady keeps it lean.</p></div></div>`;
+    const rate = units()==="imperial" ? t("rate_imperial") : t("rate_metric");
+    html += `<div class="tip"><div class="tip-ico">🎯</div><div><h3>${t("target_h")(fmtWeight(target))}</h3>
+      <p>${t("target_body")(fmtWeight(cur), gapDisp, diffKg>0, rate, weeks)}</p></div></div>`;
   }
 
   // Editable weight history
   if(log.length){
     const rows=[...log].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,14);
-    html += `<div class="section-label">Weight history</div><div class="card"><ul class="list-clean" id="wlogList">`;
+    html += `<div class="section-label">${t("weight_history")}</div><div class="card"><ul class="list-clean" id="wlogList">`;
     rows.forEach(e=>{
       html += `<li><span class="muted">${fmtDate(e.date)}</span>
         <span style="display:flex; gap:12px; align-items:center"><b>${fmtWeight(e.kg)}</b>
-        <button class="iconbtn wdel" data-date="${e.date}" aria-label="Delete entry from ${fmtDate(e.date)}" style="width:32px;height:32px">
+        <button class="iconbtn wdel" data-date="${e.date}" aria-label="${t("del_entry_aria")(fmtDate(e.date))}" style="width:32px;height:32px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/></svg>
         </button></span></li>`;
     });
-    html += `</ul>${log.length>14?`<p class="small muted">Showing the 14 most recent.</p>`:""}</div>`;
+    html += `</ul>${log.length>14?`<p class="small muted">${t("showing_recent")}</p>`:""}</div>`;
   }
 
   $("#page-insights").innerHTML = html;
@@ -862,38 +1239,37 @@ function renderInsights(){
       const latest=[...state.weightLog].sort((a,b)=>a.date.localeCompare(b.date)).pop();
       state.profile.weight=latest.kg;
     }
-    saveState(); toast("Entry removed"); renderAll();
+    saveState(); toast(t("toast_entry_removed")); renderAll();
   }));
 }
 
 function renderComposition(p){
   const ib = p.inbody;
-  let h = `<div class="section-label">Body composition</div>`;
-  // InBody score + key headline
+  let h = `<div class="section-label">${t("comp_title")}</div>`;
+  // score + key headline
   if(ib.score!=null){
     h += `<div class="stat-grid">
-      <div class="stat"><b>${ib.score}<span style="font-size:.9rem">/100</span></b><span>InBody score</span></div>
-      <div class="stat"><b>${ib.visceralFat!=null?ib.visceralFat:"—"}</b><span>Visceral fat level ${ib.visceralFat!=null&&ib.visceralFat<10?"(healthy)":""}</span></div>
+      <div class="stat"><b>${ib.score}<span style="font-size:.9rem">/100</span></b><span>${t("comp_score")}</span></div>
+      <div class="stat"><b>${ib.visceralFat!=null?ib.visceralFat:"—"}</b><span>${t("comp_visceral")} ${ib.visceralFat!=null&&ib.visceralFat<10?t("comp_healthy"):""}</span></div>
     </div>`;
   }
   h += `<div class="card">`;
   Object.keys(INBODY_RANGES).forEach(k=>{
     const r = INBODY_RANGES[k]; const v = r.get(p);
     if(v==null) return;
-    // scale axis: 15% padding below min and above max
     const span = r.max - r.min; const lo = r.min - span*0.6, hi = r.max + span*0.6;
     const pct = x => Math.max(0, Math.min(100, (x-lo)/(hi-lo)*100));
     const zoneL = pct(r.min), zoneW = pct(r.max)-pct(r.min);
     const status = v < r.min ? "low" : v > r.max ? "high" : "normal";
     h += `<div class="range-row">
-      <div class="range-head"><span class="rl">${r.label}</span>
-        <span><span class="rv">${v} ${r.unit}</span> <span class="range-tag ${status}">${status}</span></span></div>
+      <div class="range-head"><span class="rl">${t("range_"+k)}</span>
+        <span><span class="rv">${v} ${r.unit}</span> <span class="range-tag ${status}">${t("tag_"+status)}</span></span></div>
       <div class="range-bar"><span class="zone normal" style="left:${zoneL}%; width:${zoneW}%"></span>
         <span class="range-marker" style="left:${pct(v)}%"></span></div>
-      <div class="range-head small muted" style="margin-top:4px"><span>${r.min}</span><span>normal</span><span>${r.max}</span></div>
+      <div class="range-head small muted" style="margin-top:4px"><span>${r.min}</span><span>${t("comp_normal")}</span><span>${r.max}</span></div>
     </div>`;
   });
-  h += `<p class="small muted">Shaded band = typical healthy range for your height &amp; sex. Any marker outside it is flagged Low or High, and your plan is tuned to nudge it back toward the band.</p></div>`;
+  h += `<p class="small muted">${t("comp_caption")}</p></div>`;
   return h;
 }
 
@@ -917,82 +1293,93 @@ function sparkline(log, target){
 
 function renderProfile(){
   const p=state.profile; const c=compute(p);
-  let html = `<h1>Profile</h1>`;
-  html += `<div class="card"><h3>${p.name?esc(p.name):"Your details"}</h3>
+  const budMap={low:"bud_low_t",medium:"bud_med_t",high:"bud_high_t"};
+  const clMap={hot:"cl_hot_t",temperate:"cl_temp_t",cold:"cl_cold_t"};
+  const arMap={urban:"ar_urban_t",rural:"ar_rural_t"};
+  let html = `<h1>${t("profile_title")}</h1>`;
+  html += `<div class="card"><h3>${p.name?esc(p.name):t("your_details")}</h3>
     <ul class="list-clean">
-      <li><span class="muted">Goal</span><span>${c.gm.icon} ${cap(c.goal)}</span></li>
-      <li><span class="muted">Age / Sex</span><span>${p.age} · ${cap(p.sex)}</span></li>
-      <li><span class="muted">Height / Weight</span><span>${fmtHeight(p.height)} · ${fmtWeight(p.weight)}</span></li>
-      ${p.bodyFat?`<li><span class="muted">Body fat</span><span>${p.bodyFat}%</span></li>`:""}
-      <li><span class="muted">Activity</span><span>${ACTIVITY_LABEL[p.activity]}</span></li>
-      <li><span class="muted">Budget</span><span>${cap(p.budget)}</span></li>
-      <li><span class="muted">Climate / Area</span><span>${cap(p.climate)} · ${cap(p.area)}</span></li>
+      <li><span class="muted">${t("p_goal")}</span><span>${c.gm.icon} ${goalShort(c.goal)}</span></li>
+      <li><span class="muted">${t("p_agesex")}</span><span>${p.age} · ${t(p.sex==="male"?"male":"female")}</span></li>
+      <li><span class="muted">${t("p_hw")}</span><span>${fmtHeight(p.height)} · ${fmtWeight(p.weight)}</span></li>
+      ${p.bodyFat?`<li><span class="muted">${t("p_bodyfat")}</span><span>${p.bodyFat}%</span></li>`:""}
+      <li><span class="muted">${t("p_activity")}</span><span>${actLabel(p.activity)}</span></li>
+      <li><span class="muted">${t("p_budget")}</span><span>${t(budMap[p.budget]||"bud_med_t")}</span></li>
+      <li><span class="muted">${t("p_climatearea")}</span><span>${t(clMap[p.climate]||"cl_temp_t")} · ${t(arMap[p.area]||"ar_urban_t")}</span></li>
     </ul></div>`;
 
   // Log weight
   const u=units();
   const wPlace = u==="imperial" ? Math.round(kgToLb(p.weight)*10)/10 : p.weight;
-  html += `<div class="section-label">Log today's weight</div>
+  html += `<div class="section-label">${t("log_weight")}</div>
     <div class="card"><div class="suffix-wrap"><input class="input" id="wlog" type="number" inputmode="decimal" step="0.1" placeholder="${wPlace}"><span class="suffix">${weightUnit(u)}</span></div>
-    <button class="btn mt" id="wlogBtn">Save weight</button></div>`;
+    <button class="btn mt" id="wlogBtn">${t("save_weight")}</button></div>`;
 
-  // Appearance
-  html += `<div class="section-label">Appearance & units</div>
-    <div class="card"><label class="small muted" style="font-weight:600">Theme</label>
+  // Appearance + units + language
+  html += `<div class="section-label">${t("appearance")}</div>
+    <div class="card"><label class="small muted" style="font-weight:600">${t("theme")}</label>
     <div class="segmented mt" id="themeSeg">
-      <button data-theme="light" aria-pressed="${state.theme!=='dark'}">Light</button>
-      <button data-theme="dark" aria-pressed="${state.theme==='dark'}">Dark</button>
+      <button data-theme="light" aria-pressed="${state.theme!=='dark'}">${t("light")}</button>
+      <button data-theme="dark" aria-pressed="${state.theme==='dark'}">${t("dark")}</button>
     </div>
-    <label class="small muted mt" style="font-weight:600; display:block">Units</label>
+    <label class="small muted mt" style="font-weight:600; display:block">${t("units")}</label>
     <div class="segmented mt" id="unitSeg">
-      <button data-units="metric" aria-pressed="${u!=='imperial'}">Metric (kg, cm)</button>
-      <button data-units="imperial" aria-pressed="${u==='imperial'}">Imperial (lb, ft)</button>
+      <button data-units="metric" aria-pressed="${u!=='imperial'}">${t("unit_metric")}</button>
+      <button data-units="imperial" aria-pressed="${u==='imperial'}">${t("unit_imperial")}</button>
+    </div>
+    <label class="small muted mt" style="font-weight:600; display:block">${t("language")}</label>
+    <div class="segmented mt" id="langSeg">
+      <button data-lang="en" aria-pressed="${curLang()==='en'}">English</button>
+      <button data-lang="zh" aria-pressed="${curLang()==='zh'}">繁體中文</button>
     </div></div>`;
 
   // Goal override
-  html += `<div class="section-label">Adjust goal</div>
-    <div class="card"><label class="small muted" style="font-weight:600">We auto-detected "${cap(detectGoal(p))}". Override if you prefer:</label>
+  html += `<div class="section-label">${t("adjust_goal")}</div>
+    <div class="card"><label class="small muted" style="font-weight:600">${t("autodetected")(goalShort(detectGoal(p)))}</label>
     <div class="segmented mt" id="goalSeg">
-      <button data-goal="gain" aria-pressed="${c.goal==='gain'}">Gain</button>
-      <button data-goal="maintain" aria-pressed="${c.goal==='maintain'}">Maintain</button>
-      <button data-goal="lose" aria-pressed="${c.goal==='lose'}">Lose</button>
+      <button data-goal="gain" aria-pressed="${c.goal==='gain'}">${t("goal_gain_short")}</button>
+      <button data-goal="maintain" aria-pressed="${c.goal==='maintain'}">${t("goal_maintain_short")}</button>
+      <button data-goal="lose" aria-pressed="${c.goal==='lose'}">${t("goal_lose_short")}</button>
     </div></div>`;
 
   // Actions
-  html += `<div class="section-label">Manage</div>
-    <button class="btn secondary" id="retake">Re-take assessment</button>
+  html += `<div class="section-label">${t("manage")}</div>
+    <button class="btn secondary" id="retake">${t("retake")}</button>
     <div style="height:10px"></div>
-    <button class="btn secondary" id="exportBtn">Export my data (JSON)</button>
+    <button class="btn secondary" id="exportBtn">${t("export_data")}</button>
     <div style="height:10px"></div>
-    <button class="btn danger" id="resetBtn">Delete all my data</button>`;
+    <button class="btn danger" id="resetBtn">${t("delete_all")}</button>`;
 
-  html += `<div class="alert warn mt"><b>Privacy & safety</b>Vita runs entirely on your device. No account, no servers, no internet — your data never leaves this browser. This app gives general wellness guidance and is <b>not a substitute for professional medical advice</b>.</div>`;
+  html += `<div class="alert warn mt"><b>${t("privacy_title")}</b>${t("privacy_body")}</div>`;
 
   $("#page-profile").innerHTML = html;
 
   $("#wlogBtn").addEventListener("click",()=>{
-    let v=parseFloat($("#wlog").value); if(!v){ toast("Enter a realistic weight"); return; }
+    let v=parseFloat($("#wlog").value); if(!v){ toast(t("toast_realistic")); return; }
     if(units()==="imperial") v=lbToKg(v);          // store canonical kg
     v=Math.round(v*10)/10;
-    if(v<25||v>300){ toast("Enter a realistic weight"); return; }
+    if(v<25||v>300){ toast(t("toast_realistic")); return; }
     state.weightLog=state.weightLog||[];
     const k=todayKey();
     const existing=state.weightLog.find(x=>x.date===k);
     if(existing) existing.kg=v; else state.weightLog.push({date:k,kg:v});
-    state.profile.weight=v; saveState(); toast("Weight saved"); renderAll();
+    state.profile.weight=v; saveState(); toast(t("toast_weight_saved")); renderAll();
   });
   $$("#themeSeg button").forEach(b=>b.addEventListener("click",()=>{ setTheme(b.dataset.theme); renderProfile(); }));
   $$("#unitSeg button").forEach(b=>b.addEventListener("click",()=>{
-    state.profile.units=b.dataset.units; saveState(); toast("Units updated"); renderAll();
+    state.profile.units=b.dataset.units; saveState(); toast(t("toast_units")); renderAll();
+  }));
+  $$("#langSeg button").forEach(b=>b.addEventListener("click",()=>{
+    setLang(b.dataset.lang); applyStaticI18n(); toast(t("toast_lang")); renderAll();
   }));
   $$("#goalSeg button").forEach(b=>b.addEventListener("click",()=>{
     state.profile.goalOverride = b.dataset.goal===detectGoal(state.profile) ? null : b.dataset.goal;
-    rebuildPlan(); saveState(); toast("Goal updated"); renderAll();
+    rebuildPlan(); saveState(); toast(t("toast_goal")); renderAll();
   }));
   $("#retake").addEventListener("click",()=>{ startOnboarding(state.profile); });
   $("#exportBtn").addEventListener("click",exportData);
   $("#resetBtn").addEventListener("click",()=>{
-    if(confirm("Delete ALL your Vita data from this device? This cannot be undone.")){
+    if(confirm(t("confirm_delete"))){
       localStorage.removeItem(STORE); state=null; location.reload();
     }
   });
@@ -1011,16 +1398,18 @@ function fmtWeight(kg,u){ u=u||units(); if(kg==null||kg==="") return "—"; retu
 function fmtHeight(cm,u){ u=u||units(); if(!cm) return "—"; if(u==="imperial"){ const {ft,inch}=cmToFtIn(cm); return ft+"′"+inch+"″"; } return Math.round(cm)+" cm"; }
 function weightUnit(u){ return (u||units())==="imperial"?"lb":"kg"; }
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function fmtDate(iso){ const [y,m,d]=iso.split("-").map(Number); const t=todayKey();
-  if(iso===t) return "Today";
-  const yd=new Date(); yd.setDate(yd.getDate()-1); if(iso===yd.toISOString().slice(0,10)) return "Yesterday";
-  return MONTHS[m-1]+" "+d+(y!==new Date().getFullYear()?(" "+y):""); }
+function fmtDate(iso){ const [y,m,d]=iso.split("-").map(Number); const tk=todayKey();
+  if(iso===tk) return t("date_today");
+  const yd=new Date(); yd.setDate(yd.getDate()-1); if(iso===yd.toISOString().slice(0,10)) return t("date_yesterday");
+  const sameYear = y===new Date().getFullYear();
+  if(curLang()==="zh") return (sameYear?"":y+"年")+m+"月"+d+"日";
+  return MONTHS[m-1]+" "+d+(sameYear?"":(" "+y)); }
 
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a"); a.href=url; a.download="vita-data.json"; a.click();
-  URL.revokeObjectURL(url); toast("Exported");
+  URL.revokeObjectURL(url); toast(t("toast_exported"));
 }
 
 function rebuildPlan(){
@@ -1031,40 +1420,40 @@ function rebuildPlan(){
 /* ---------- Plan as plain text (for local share / clipboard) ---------- */
 function planAsText(){
   const p=state.profile, c=compute(p);
-  const L=[];
-  L.push("Vita — my health plan");
-  if(p.name) L.push("For: "+p.name);
-  L.push("Goal: "+c.gm.label);
-  L.push("");
-  L.push("DAILY TARGETS");
-  L.push("- Calories: ~"+c.calories+" kcal");
-  L.push("- Protein: "+c.proteinG+" g");
-  L.push("- Carbs: "+c.carbG+" g");
-  L.push("- Fat: "+c.fatG+" g");
-  L.push("- Water: "+(c.hydration/1000).toFixed(1)+" L");
-  L.push("- BMI: "+c.bmi.toFixed(1));
-  L.push("");
-  L.push("DAILY REQUIREMENTS");
-  state.checklist.forEach(it=>L.push("- "+it.title+" ("+it.target+")"));
-  L.push("");
-  L.push("SAMPLE DAY (~"+c.calories+" kcal)");
-  sampleMealPlan(p,c).forEach(m=>L.push("- "+m.name+": "+m.foods+" — ~"+m.kcal+" kcal, "+m.protein+"g protein"));
-  L.push("");
-  L.push("Educational guidance, not medical advice. Made with Vita.");
-  return L.join("\n");
+  const out=[];
+  out.push(t("pt_title"));
+  if(p.name) out.push(p.name);
+  out.push(t("p_goal")+": "+goalLabel(c.goal));
+  out.push("");
+  out.push(t("daily_targets").toUpperCase());
+  out.push("- "+t("st_kcal")+": ~"+c.calories+" kcal");
+  out.push("- "+t("st_protein")+": "+c.proteinG+" g");
+  out.push("- "+t("st_carbs")+": "+c.carbG+" g");
+  out.push("- "+t("st_fat")+": "+c.fatG+" g");
+  out.push("- "+t("st_water")+": "+(c.hydration/1000).toFixed(1)+" L");
+  out.push("- BMI: "+c.bmi.toFixed(1));
+  out.push("");
+  out.push(t("your_reqs").toUpperCase());
+  state.checklist.forEach(it=>out.push("- "+it.title+"（"+it.target+"）"));
+  out.push("");
+  out.push(t("sample_day")(c.calories));
+  sampleMealPlan(p,c).forEach(m=>out.push("- "+m.name+"："+m.foods+" — ~"+m.kcal+" kcal, "+m.protein+"g"));
+  out.push("");
+  out.push(t("pt_footer"));
+  return out.join("\n");
 }
 async function sharePlan(){
   const text=planAsText();
-  try{ if(navigator.share){ await navigator.share({title:"My Vita plan", text}); return; } }
+  try{ if(navigator.share){ await navigator.share({title:t("pt_title"), text}); return; } }
   catch(e){ if(e && e.name==="AbortError") return; /* else fall through */ }
-  try{ await navigator.clipboard.writeText(text); toast("Plan copied to clipboard"); return; }
+  try{ await navigator.clipboard.writeText(text); toast(t("toast_plan_copied")); return; }
   catch(e){ /* file:// or insecure context — use legacy fallback */ }
   try{
     const ta=document.createElement("textarea"); ta.value=text;
     ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta);
     ta.focus(); ta.select(); const ok=document.execCommand("copy"); document.body.removeChild(ta);
-    toast(ok?"Plan copied":"Couldn't copy");
-  }catch(e){ toast("Couldn't copy"); }
+    toast(ok?t("toast_plan_copied2"):t("toast_plan_fail"));
+  }catch(e){ toast(t("toast_plan_fail")); }
 }
 
 function renderAll(){
@@ -1074,12 +1463,22 @@ function renderAll(){
 /* =========================================================================
    NAVIGATION
    ========================================================================= */
-const TITLES={today:"Today",plan:"Your Plan",insights:"Insights",profile:"Profile"};
+const TITLES={today:"bar_today",plan:"bar_plan",insights:"bar_insights",profile:"bar_profile"};
+let currentTab="today";
 function go(tab){
-  $$(".tab").forEach(t=>t.setAttribute("aria-selected", t.dataset.tab===tab));
+  currentTab=tab;
+  $$(".tab").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
   $$(".page").forEach(p=>p.classList.toggle("active", p.id===`page-${tab}`));
-  $("#barTitle").textContent=TITLES[tab];
+  $("#barTitle").textContent=t(TITLES[tab]);
   window.scrollTo(0,0);
+}
+// Localize the static chrome (tab labels, app-bar title, theme aria, <html lang>)
+function applyStaticI18n(){
+  document.documentElement.setAttribute("lang", curLang()==="zh"?"zh-Hant":"en");
+  const navMap={today:"nav_today",plan:"nav_plan",insights:"nav_insights",profile:"nav_profile"};
+  $$(".tab").forEach(b=>{ const s=b.querySelector("span"); if(s) s.textContent=t(navMap[b.dataset.tab]); });
+  const tt=$("#themeToggle"); if(tt){ tt.setAttribute("aria-label",t("theme_aria")); tt.setAttribute("title",t("theme_aria")); }
+  const bt=$("#barTitle"); if(bt) bt.textContent=t(TITLES[currentTab]||"bar_today");
 }
 $$(".tab").forEach(t=>t.addEventListener("click",()=>go(t.dataset.tab)));
 $("#themeToggle").addEventListener("click",()=>setTheme(state.theme==="dark"?"light":"dark"));
@@ -1117,15 +1516,20 @@ function renderOb(){
   if(ob.step===0){
     body=`<div class="ob-step active">
       <div class="hero-ico">🌿</div>
-      <h1>Welcome to Vita</h1>
-      <p class="muted">Your private health assistant. Answer a few questions and I'll build a daily plan tailored to your body, your budget, and where you live.</p>
-      <div class="field mt"><label>What should I call you? (optional)</label>
-        <input class="input" id="f-name" value="${esc(d.name||"")}" placeholder="Your name" autocomplete="off"></div>
+      <h1>${t("ob_welcome_t")}</h1>
+      <p class="muted">${t("ob_welcome_sub")}</p>
+      <div class="field"><label>${t("language")}</label>
+        <div class="segmented" id="ob-lang">
+          <button type="button" data-lang="en" aria-pressed="${curLang()==='en'}">English</button>
+          <button type="button" data-lang="zh" aria-pressed="${curLang()==='zh'}">繁體中文</button>
+        </div></div>
+      <div class="field mt"><label>${t("name_q")}</label>
+        <input class="input" id="f-name" value="${esc(d.name||"")}" placeholder="${t("name_ph")}" autocomplete="off"></div>
       <div class="card flat" style="background:var(--secondary-soft); border:none">
-        <p class="small" style="margin:0">✨ New here? Load a sample profile to see how Vita works — then re-take it with your own details.</p>
-        <button class="btn secondary sm mt" id="loadInbody" style="width:100%">Try a sample profile</button>
+        <p class="small" style="margin:0">${t("sample_card")}</p>
+        <button class="btn secondary sm mt" id="loadInbody" style="width:100%">${t("sample_btn")}</button>
       </div>
-      <p class="small muted mt">🔒 Everything stays on your device. No account, no internet.</p>
+      <p class="small muted mt">${t("privacy_line")}</p>
     </div>`;
   }
   if(ob.step===1){
@@ -1139,73 +1543,74 @@ function renderOb(){
          </div></div>`
       : `<div class="field"><label>Height</label><div class="suffix-wrap"><input class="input" id="f-height" type="number" inputmode="decimal" value="${d.height||""}" placeholder="170"><span class="suffix">cm</span></div></div>`;
     body=`<div class="ob-step active">
-      <h1>Your body</h1>
-      <p class="muted">These let me calculate your energy needs accurately.</p>
-      <div class="field"><label>Units</label>
+      <h1>${t("ob_body_t")}</h1>
+      <p class="muted">${t("ob_body_sub")}</p>
+      <div class="field"><label>${t("units")}</label>
         <div class="segmented" id="f-units">
-          <button data-v="metric" aria-pressed="${!imp}">Metric (kg, cm)</button>
-          <button data-v="imperial" aria-pressed="${imp}">Imperial (lb, ft)</button>
+          <button data-v="metric" aria-pressed="${!imp}">${t("unit_metric")}</button>
+          <button data-v="imperial" aria-pressed="${imp}">${t("unit_imperial")}</button>
         </div></div>
-      <div class="field"><label>Sex (for metabolic formula)</label>
+      <div class="field"><label>${t("sex_label")}</label>
         <div class="segmented" id="f-sex">
-          <button data-v="male" aria-pressed="${d.sex==='male'}">Male</button>
-          <button data-v="female" aria-pressed="${d.sex==='female'}">Female</button>
+          <button data-v="male" aria-pressed="${d.sex==='male'}">${t("male")}</button>
+          <button data-v="female" aria-pressed="${d.sex==='female'}">${t("female")}</button>
         </div></div>
       <div class="row2">
-        <div class="field"><label>Age</label><div class="suffix-wrap"><input class="input" id="f-age" type="number" inputmode="numeric" value="${d.age||""}" placeholder="30"><span class="suffix">yrs</span></div></div>
+        <div class="field"><label>${t("age")}</label><div class="suffix-wrap"><input class="input" id="f-age" type="number" inputmode="numeric" value="${d.age||""}" placeholder="30"><span class="suffix">${curLang()==='zh'?'歲':'yrs'}</span></div></div>
         ${heightInputs}
       </div>
       <div class="row2">
-        <div class="field"><label>Weight</label><div class="suffix-wrap"><input class="input" id="f-weight" type="number" inputmode="decimal" step="0.1" value="${wDisp}" placeholder="${imp?'154':'70'}"><span class="suffix">${imp?'lb':'kg'}</span></div></div>
-        <div class="field"><label>Body fat (optional)</label><div class="suffix-wrap"><input class="input" id="f-bodyfat" type="number" inputmode="decimal" step="0.1" value="${d.bodyFat||""}" placeholder="—"><span class="suffix">%</span></div></div>
+        <div class="field"><label>${t("weight")}</label><div class="suffix-wrap"><input class="input" id="f-weight" type="number" inputmode="decimal" step="0.1" value="${wDisp}" placeholder="${imp?'154':'70'}"><span class="suffix">${imp?'lb':'kg'}</span></div></div>
+        <div class="field"><label>${t("bodyfat_opt")}</label><div class="suffix-wrap"><input class="input" id="f-bodyfat" type="number" inputmode="decimal" step="0.1" value="${d.bodyFat||""}" placeholder="—"><span class="suffix">%</span></div></div>
       </div>
-      <div class="field"><label>How active are you?</label>
+      <div class="field"><label>${t("activity_q")}</label>
         <select class="input" id="f-activity">
-          ${Object.keys(ACTIVITY_LABEL).map(k=>`<option value="${k}" ${d.activity===k?"selected":""}>${ACTIVITY_LABEL[k]}</option>`).join("")}
+          ${Object.keys(ACTIVITY).map(k=>`<option value="${k}" ${d.activity===k?"selected":""}>${actLabel(k)}</option>`).join("")}
         </select></div>
     </div>`;
   }
   if(ob.step===2){
     const fe=d.feelings;
     body=`<div class="ob-step active">
-      <h1>How do you feel?</h1>
-      <p class="muted">Honest sliders help me add the right recovery and wellbeing tasks.</p>
-      ${slider("energy","Energy levels",fe.energy,"😴","⚡")}
-      ${slider("sleep","Sleep quality",fe.sleep,"🥱","😌")}
-      ${slider("stress","Stress levels",fe.stress,"😌","😰")}
+      <h1>${t("ob_feel_t")}</h1>
+      <p class="muted">${t("ob_feel_sub")}</p>
+      ${slider("energy",t("feel_energy"),fe.energy,"😴","⚡")}
+      ${slider("sleep",t("feel_sleep"),fe.sleep,"🥱","😌")}
+      ${slider("stress",t("feel_stress"),fe.stress,"😌","😰")}
     </div>`;
   }
   if(ob.step===3){
     body=`<div class="ob-step active">
-      <h1>Your budget</h1>
-      <p class="muted">I'll suggest foods that fit. There's a great plan at every budget.</p>
+      <h1>${t("ob_budget_t")}</h1>
+      <p class="muted">${t("ob_budget_sub")}</p>
       <div class="options" id="f-budget">
-        ${optCard("budget","low","💰","Tight budget","Cheap, nutrient-dense staples",d.budget)}
-        ${optCard("budget","medium","💳","Moderate","Balanced value picks",d.budget)}
-        ${optCard("budget","high","💎","Comfortable","Premium variety & convenience",d.budget)}
+        ${optCard("budget","low","💰",t("bud_low_t"),t("bud_low_s"),d.budget)}
+        ${optCard("budget","medium","💳",t("bud_med_t"),t("bud_med_s"),d.budget)}
+        ${optCard("budget","high","💎",t("bud_high_t"),t("bud_high_s"),d.budget)}
       </div>
     </div>`;
   }
   if(ob.step===4){
     body=`<div class="ob-step active">
-      <h1>Where you live</h1>
-      <p class="muted">Climate affects hydration & training; your area affects food access.</p>
-      <label class="small muted" style="font-weight:600; text-transform:uppercase; letter-spacing:.02em">Climate</label>
+      <h1>${t("ob_where_t")}</h1>
+      <p class="muted">${t("ob_where_sub")}</p>
+      <label class="small muted" style="font-weight:600; text-transform:uppercase; letter-spacing:.02em">${t("climate_label")}</label>
       <div class="options" id="f-climate" style="margin:8px 0 16px">
-        ${optCard("climate","hot","☀️","Hot","Heat raises your water needs",d.climate)}
-        ${optCard("climate","temperate","⛅","Temperate","Mild, flexible",d.climate)}
-        ${optCard("climate","cold","❄️","Cold","Thirst is blunted — sip on schedule",d.climate)}
+        ${optCard("climate","hot","☀️",t("cl_hot_t"),t("cl_hot_s"),d.climate)}
+        ${optCard("climate","temperate","⛅",t("cl_temp_t"),t("cl_temp_s"),d.climate)}
+        ${optCard("climate","cold","❄️",t("cl_cold_t"),t("cl_cold_s"),d.climate)}
       </div>
-      <label class="small muted" style="font-weight:600; text-transform:uppercase; letter-spacing:.02em">Area</label>
+      <label class="small muted" style="font-weight:600; text-transform:uppercase; letter-spacing:.02em">${t("area_label")}</label>
       <div class="options" id="f-area" style="margin-top:8px">
-        ${optCard("area","urban","🏙️","Urban","Variety & gyms, higher cost",d.area)}
-        ${optCard("area","rural","🌾","Rural","Staples & bodyweight training",d.area)}
+        ${optCard("area","urban","🏙️",t("ar_urban_t"),t("ar_urban_s"),d.area)}
+        ${optCard("area","rural","🌾",t("ar_rural_t"),t("ar_rural_s"),d.area)}
       </div>
     </div>`;
   }
   $("#obBody").innerHTML=body;
   $("#obBack").style.display = ob.step>0 ? "inline-flex":"none";
-  $("#obNext").textContent = ob.step===OB_STEPS-1 ? "Build my plan ✨" : "Continue";
+  $("#obBack").textContent = t("back");
+  $("#obNext").textContent = ob.step===OB_STEPS-1 ? t("build_plan") : t("cont");
   attachObHandlers();
 }
 
@@ -1213,7 +1618,7 @@ function slider(key,label,val,lo,hi){
   return `<div class="slider-field">
     <div class="slider-head"><label style="margin:0">${label}</label><span class="slider-val" id="sv-${key}">${val}/10</span></div>
     <input type="range" min="1" max="10" value="${val}" id="f-${key}" data-key="${key}">
-    <div class="slider-head small muted"><span>${lo} Low</span><span>High ${hi}</span></div>
+    <div class="slider-head small muted"><span>${lo} ${t("low_word")}</span><span>${t("high_word")} ${hi}</span></div>
   </div>`;
 }
 function optCard(group,val,ico,title,sub,current){
@@ -1230,6 +1635,8 @@ function attachObHandlers(){
   bind("f-name","name"); bind("f-age","age"); bind("f-bodyfat","bodyFat");
   const act=$("#f-activity"); if(act) act.addEventListener("change",()=>d.activity=act.value);
 
+  // Language toggle (welcome step)
+  $$("#ob-lang button").forEach(b=>b.addEventListener("click",()=>{ setLang(b.dataset.lang); applyStaticI18n(); renderOb(); }));
   // Units: toggle re-renders step 1 (canonical cm/kg already stored, so values convert)
   $$("#f-units button").forEach(b=>b.addEventListener("click",()=>{ d.units=b.dataset.v; renderOb(); }));
 
@@ -1250,7 +1657,7 @@ function attachObHandlers(){
 
   $("#loadInbody") && $("#loadInbody").addEventListener("click",()=>{
     Object.assign(d, JSON.parse(JSON.stringify(INBODY_PRESET)), {name:d.name});
-    toast("Sample profile loaded"); renderOb();
+    toast(t("toast_sample")); renderOb();
   });
 
   $$("#f-sex button").forEach(b=>b.addEventListener("click",()=>{
@@ -1270,12 +1677,12 @@ function validateStep(){
   const d=ob.data;
   if(ob.step===1){
     const age=+d.age, h=+d.height, w=+d.weight;
-    if(!age||age<5||age>120){ toast("Enter a valid age"); return false; }
-    if(!h||h<100||h>250){ toast("Enter a valid height"); return false; }
-    if(!w||w<25||w>300){ toast("Enter a valid weight"); return false; }
+    if(!age||age<5||age>120){ toast(t("v_age")); return false; }
+    if(!h||h<100||h>250){ toast(t("v_height")); return false; }
+    if(!w||w<25||w>300){ toast(t("v_weight")); return false; }
   }
-  if(ob.step===3 && !d.budget){ toast("Pick a budget"); return false; }
-  if(ob.step===4){ if(!d.climate){ toast("Pick your climate"); return false; } if(!d.area){ toast("Pick your area"); return false; } }
+  if(ob.step===3 && !d.budget){ toast(t("v_budget")); return false; }
+  if(ob.step===4){ if(!d.climate){ toast(t("v_climate")); return false; } if(!d.area){ toast(t("v_area")); return false; } }
   return true;
 }
 
@@ -1295,6 +1702,7 @@ function finishOnboarding(){
   const prev = state || {};
   state = {
     profile:d,
+    lang: appLang,
     theme: prev.theme || (matchMediaDark()?"dark":"light"),
     progress: prev.progress || {},
     weightLog: prev.weightLog || [{date:todayKey(), kg:d.weight}],
@@ -1304,8 +1712,8 @@ function finishOnboarding(){
   saveState();
   $("#onboarding").classList.remove("active");
   document.documentElement.setAttribute("data-theme",state.theme);
-  go("today"); renderAll();
-  toast("Your plan is ready 🎉");
+  go("today"); renderAll(); applyStaticI18n();
+  toast(t("toast_ready"));
 }
 
 function matchMediaDark(){ try{ return window.matchMedia("(prefers-color-scheme: dark)").matches; }catch(e){ return false; } }
@@ -1314,6 +1722,8 @@ function matchMediaDark(){ try{ return window.matchMedia("(prefers-color-scheme:
    BOOT
    ========================================================================= */
 function boot(){
+  appLang = (state && state.lang) ? state.lang : defaultLang();
+  applyStaticI18n();
   if(state && state.profile){
     document.documentElement.setAttribute("data-theme", state.theme||"light");
     if(!state.checklist || !state.checklist.length) rebuildPlan();
