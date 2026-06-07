@@ -50,10 +50,10 @@ You can also just open `index.html` directly on a computer to use it.
 
 | Tab | What it does |
 |-----|--------------|
-| **Today** | Progress ring, streak, a tap-to-log water counter, today's checkable requirements, and a daily tip. |
+| **Today** | Progress ring, streak, a tap-to-log water counter, an **offline food logger** (tap foods from a built-in list incl. Taiwanese dishes — or add a custom food — and see calories/macros vs your targets with a supportive tip), a **Find food nearby** button (opens your Maps app), today's checkable requirements, and a daily tip. |
 | **Plan** | Daily targets (calories, protein/carbs/fat, water, BMI), requirements by category, budget-appropriate food ideas, a sample day's meals, climate/area guidance, and a Share / copy-plan button. |
 | **Insights** | A 4-week completion heatmap, 7-day completion %, a body-composition view, a weight-trend chart, and an editable weight history. |
-| **Profile** | Your details, weight logging, light/dark theme, metric/imperial units, manual goal override, data export/delete. |
+| **Profile** | Your details, weight logging, light/dark theme, metric/imperial units, **editable body-composition (InBody) data**, manual goal override, data export/delete. |
 
 ### The 5-step assessment
 1. **Welcome** — your name (optional) + an optional sample profile.

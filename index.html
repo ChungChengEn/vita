@@ -279,6 +279,37 @@ input[type=range]::-moz-range-thumb { width:26px; height:26px; border-radius:50%
 .water-btn.add { flex:1; background:var(--secondary-soft); color:var(--secondary); border-color:transparent; }
 .water-btn:disabled { opacity:.4; cursor:not-allowed; }
 
+/* Food logger */
+.macro-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+.macro-row .ml { min-width:56px; font-size:.76rem; font-weight:700; color:var(--text-muted); white-space:nowrap; }
+.macro-row .mbar { flex:1; height:8px; border-radius:var(--radius-full); background:var(--ring-track); overflow:hidden; }
+.macro-row .mbar span { display:block; height:100%; border-radius:var(--radius-full); transition:width .45s cubic-bezier(.22,1,.36,1); }
+.macro-row .mv { font-size:.74rem; color:var(--text-muted); white-space:nowrap; min-width:62px; text-align:right; }
+.food-entry { display:flex; align-items:center; gap:var(--space-3); padding:10px 0; border-bottom:1px solid var(--border); }
+.food-entry:last-child { border-bottom:none; }
+.food-entry .fe-emoji { font-size:22px; flex:none; width:28px; text-align:center; }
+.food-entry .fe-body { flex:1; min-width:0; }
+.food-entry .fe-name { font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.food-entry .fe-macros { font-size:.78rem; color:var(--text-muted); }
+.food-entry .fe-kcal { font-weight:700; white-space:nowrap; }
+.food-entry .fe-del { width:44px; height:44px; flex:none; border:none; background:transparent; color:var(--text-muted); cursor:pointer; border-radius:var(--radius-full); display:grid; place-items:center; font-size:1.05rem; }
+.undo-chip { display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); margin-top:var(--space-3); padding:10px var(--space-4); border-radius:var(--radius-md); background:var(--accent-soft); font-size:.9rem; }
+.undo-chip button { border:none; background:transparent; color:var(--accent); font-weight:700; cursor:pointer; padding:6px 8px; }
+.food-entry .fe-del:active { background:var(--primary-soft); }
+.meal-actions { display:flex; gap:var(--space-3); margin-top:var(--space-3); }
+.meal-actions .btn { flex:1; }
+.pick-list { max-height:300px; overflow-y:auto; -webkit-overflow-scrolling:touch; margin-top:var(--space-2); }
+.pick-row { display:flex; align-items:center; gap:var(--space-3); padding:10px 4px; border-bottom:1px solid var(--border); }
+.pick-row .pk-emoji { font-size:20px; flex:none; width:26px; text-align:center; }
+.pick-row .pk-body { flex:1; min-width:0; }
+.pick-row .pk-name { font-weight:600; }
+.pick-row .pk-kcal { font-size:.78rem; color:var(--text-muted); }
+.qty-step { display:flex; align-items:center; gap:6px; flex:none; }
+.qty-step button { width:30px; height:30px; border-radius:var(--radius-sm); border:1.5px solid var(--border); background:var(--surface); color:var(--text-primary); font-weight:700; cursor:pointer; }
+.qty-step span { min-width:30px; text-align:center; font-weight:600; font-size:.9rem; }
+.pk-add { height:34px; padding:0 14px; flex:none; border:none; border-radius:var(--radius-sm); background:var(--primary); color:#fff; font-weight:600; cursor:pointer; }
+.pk-add:active { transform:scale(.97); }
+
 /* misc */
 .center { text-align:center; }
 .mt { margin-top:var(--space-4); }
@@ -475,6 +506,24 @@ const I18N = {
     water_add:"+ Add a glass", water_goal:"Goal reached 🎉",
     water_minus_aria:"Remove a glass", water_add_aria:"Add a glass",
     toast_hydration:"Hydration goal hit 💧",
+    /* food logger */
+    meals_title:"Meals", nutrition_today:"Today's nutrition",
+    ring_of:(t)=>`/ ${t}`, kcal_unit:"kcal",
+    macro_p:"Protein", macro_c:"Carbs", macro_f:"Fat",
+    log_meal:"Log a meal", find_food:"Find food nearby", find_food_hint:"Opens your Maps app",
+    maps_query:"healthy food",
+    meal_search_ph:"Search foods…", custom_food:"✏️ Custom food", custom_name_ph:"Food name", add_word:"Add", close_word:"Close",
+    no_meals:"No meals logged yet today. Tap “Log a meal” to start.",
+    remove_aria:"Remove entry", servings_word:"servings", undo_word:"Undo",
+    toast_meal_added:"Logged ✓", toast_meal_removed:"Removed", toast_storage_full:"Storage full — remove some entries",
+    meals_disclaimer:"Estimates — adjust to your portions.",
+    fb_under_gain:(n)=>`You have room for a snack — about ${n} kcal to reach today's goal.`,
+    fb_over_lose:"A bit above plan today; tomorrow is a fresh start.",
+    fb_protein_low:"Add a protein source at your next meal to reach today's goal.",
+    fb_on_track:"Nicely balanced today — you're on track.",
+    fb_protein_ok:"Great protein intake today — that supports your goal.",
+    fb_generic:(n)=>`About ${n} kcal to go today.`,
+    fb_check:"Today's intake looks low — double-check your entries and eat enough to feel your best.",
     /* goals */
     goal_gain_label:"Gain healthy weight & build muscle",
     goal_maintain_label:"Maintain & stay strong",
@@ -601,6 +650,9 @@ const I18N = {
     adjust_goal:"Adjust goal",
     autodetected:(g)=>`We auto-detected "${g}". Override if you prefer:`,
     manage:"Manage", retake:"Re-take assessment", export_data:"Export my data (JSON)", delete_all:"Delete all my data",
+    body_comp_title:"Body composition (InBody)", body_comp_sub:"Optional — enter your scan numbers to track them in Insights.",
+    edit_body:"Edit body composition", add_body:"Add body composition", save_word:"Save", remove_word:"Remove",
+    bc_target:"Target weight", toast_body_saved:"Body data saved", toast_body_removed:"Body data removed",
     privacy_title:"Privacy & safety",
     privacy_body:"Vita runs entirely on your device. No account, no servers, no internet — your data never leaves this browser. This app gives general wellness guidance and is <b>not a substitute for professional medical advice</b>.",
     confirm_delete:"Delete ALL your Vita data from this device? This cannot be undone.",
@@ -656,6 +708,24 @@ const I18N = {
     water_add:"＋ 加一杯", water_goal:"已達標 🎉",
     water_minus_aria:"減一杯", water_add_aria:"加一杯",
     toast_hydration:"達成喝水目標 💧",
+    /* food logger */
+    meals_title:"餐食", nutrition_today:"今日營養",
+    ring_of:(t)=>`/ ${t}`, kcal_unit:"大卡",
+    macro_p:"蛋白質", macro_c:"碳水", macro_f:"脂肪",
+    log_meal:"記錄一餐", find_food:"附近的食物", find_food_hint:"會開啟你的地圖 App",
+    maps_query:"健康 餐廳",
+    meal_search_ph:"搜尋食物…", custom_food:"✏️ 自訂食物", custom_name_ph:"食物名稱", add_word:"加入", close_word:"關閉",
+    no_meals:"今天還沒有記錄餐食。點「記錄一餐」開始。",
+    remove_aria:"刪除紀錄", servings_word:"份", undo_word:"復原",
+    toast_meal_added:"已記錄 ✓", toast_meal_removed:"已移除", toast_storage_full:"儲存空間已滿——請刪除部分紀錄",
+    meals_disclaimer:"估計值，請依份量調整。",
+    fb_under_gain:(n)=>`還有空間吃點心——大約再 ${n} 大卡就能達到今天的目標。`,
+    fb_over_lose:"今天稍微超過計畫了，明天重新開始就好。",
+    fb_protein_low:"下一餐加一份蛋白質，就能達到今天的目標。",
+    fb_on_track:"今天很均衡——維持得很好。",
+    fb_protein_ok:"今天蛋白質攝取很棒，有助於你的目標。",
+    fb_generic:(n)=>`今天大約還剩 ${n} 大卡。`,
+    fb_check:"今天的攝取看起來偏低——請再確認紀錄，並吃足讓自己更有精神。",
     goal_gain_label:"健康增重、增肌",
     goal_maintain_label:"維持體態、保持強壯",
     goal_lose_label:"減脂、保留肌肉",
@@ -769,6 +839,9 @@ const I18N = {
     adjust_goal:"調整目標",
     autodetected:(g)=>`系統自動判定為「${g}」。如有需要可手動覆蓋：`,
     manage:"管理", retake:"重新評估", export_data:"匯出我的資料（JSON）", delete_all:"刪除所有資料",
+    body_comp_title:"身體組成（InBody）", body_comp_sub:"選填——輸入你的量測數值，即可在「分析」中追蹤。",
+    edit_body:"編輯身體組成", add_body:"新增身體組成", save_word:"儲存", remove_word:"移除",
+    bc_target:"目標體重", toast_body_saved:"已儲存身體數據", toast_body_removed:"已移除身體數據",
     privacy_title:"隱私與安全",
     privacy_body:"Vita 完全在你的裝置上執行。沒有帳號、沒有伺服器、不連網——你的資料永遠不會離開這個瀏覽器。本程式提供一般保健指引，<b>不能取代專業醫療建議</b>。",
     confirm_delete:"要從這台裝置刪除所有 Vita 資料嗎？此動作無法復原。",
@@ -984,6 +1057,114 @@ function tipFor(goal, day){
 }
 
 /* =========================================================================
+   FOOD LOGGER — fully offline. Per-serving values; en/zh names built in.
+   No network, no account, no API. Privacy guarantee stays intact.
+   ========================================================================= */
+const FOODDB = [
+  {id:"egg", e:"🥚", en:"Egg", zh:"蛋", kcal:78, p:6, c:0.6, f:5},
+  {id:"milk", e:"🥛", en:"Whole milk (1 cup)", zh:"全脂牛奶（1 杯）", kcal:150, p:8, c:12, f:8},
+  {id:"soymilk", e:"🥛", en:"Soy milk (1 cup)", zh:"豆漿（1 杯）", kcal:110, p:8, c:9, f:4},
+  {id:"rice", e:"🍚", en:"Cooked rice (1 bowl)", zh:"白飯（1 碗）", kcal:240, p:4, c:53, f:0.4},
+  {id:"congee", e:"🥣", en:"Congee (1 bowl)", zh:"稀飯／粥（1 碗）", kcal:150, p:4, c:30, f:1},
+  {id:"oats", e:"🥣", en:"Oatmeal (1 bowl)", zh:"燕麥（1 碗）", kcal:150, p:5, c:27, f:3},
+  {id:"bread", e:"🍞", en:"Bread (2 slices)", zh:"吐司（2 片）", kcal:160, p:6, c:30, f:2},
+  {id:"chicken", e:"🍗", en:"Chicken breast (100 g)", zh:"雞胸肉（100 g）", kcal:165, p:31, c:0, f:3.6},
+  {id:"salmon", e:"🐟", en:"Salmon (100 g)", zh:"鮭魚（100 g）", kcal:208, p:20, c:0, f:13},
+  {id:"tofu", e:"⬜", en:"Tofu (100 g)", zh:"豆腐（100 g）", kcal:76, p:8, c:1.9, f:4.8},
+  {id:"yogurt", e:"🥛", en:"Greek yogurt (1 cup)", zh:"希臘優格（1 杯）", kcal:130, p:12, c:9, f:4},
+  {id:"whey", e:"💪", en:"Whey shake (1 scoop)", zh:"乳清（1 匙）", kcal:120, p:24, c:3, f:1.5},
+  {id:"pb", e:"🥜", en:"Peanut butter (2 tbsp)", zh:"花生醬（2 匙）", kcal:190, p:8, c:6, f:16},
+  {id:"nuts", e:"🌰", en:"Mixed nuts (handful)", zh:"綜合堅果（一把）", kcal:170, p:5, c:6, f:15},
+  {id:"banana", e:"🍌", en:"Banana", zh:"香蕉", kcal:105, p:1.3, c:27, f:0.4},
+  {id:"apple", e:"🍎", en:"Apple", zh:"蘋果", kcal:95, p:0.5, c:25, f:0.3},
+  {id:"avocado", e:"🥑", en:"Avocado (half)", zh:"酪梨（半顆）", kcal:160, p:2, c:9, f:15},
+  {id:"sweetpotato", e:"🍠", en:"Sweet potato", zh:"地瓜", kcal:130, p:2, c:30, f:0.2},
+  {id:"salad", e:"🥗", en:"Vegetable salad", zh:"蔬菜沙拉", kcal:60, p:2, c:10, f:1},
+  {id:"greens", e:"🥬", en:"Stir-fried greens", zh:"炒青菜", kcal:90, p:3, c:8, f:6},
+  {id:"pasta", e:"🍝", en:"Pasta (1 plate)", zh:"義大利麵（1 盤）", kcal:350, p:12, c:65, f:6},
+  {id:"bento", e:"🍱", en:"Lunch box (biandang)", zh:"便當", kcal:700, p:30, c:90, f:22},
+  {id:"beefnoodle", e:"🍜", en:"Beef noodle soup", zh:"牛肉麵", kcal:550, p:30, c:60, f:18},
+  {id:"luroufan", e:"🍚", en:"Braised pork rice", zh:"滷肉飯", kcal:450, p:12, c:60, f:16},
+  {id:"chickenrice", e:"🍚", en:"Chicken over rice", zh:"雞肉飯", kcal:420, p:22, c:58, f:10},
+  {id:"friedrice", e:"🍚", en:"Fried rice", zh:"炒飯", kcal:560, p:14, c:75, f:22},
+  {id:"dumplings", e:"🥟", en:"Dumplings (10)", zh:"水餃（10 顆）", kcal:420, p:18, c:50, f:16},
+  {id:"onigiri", e:"🍙", en:"Rice ball (fantuan)", zh:"飯糰", kcal:300, p:8, c:55, f:6},
+  {id:"eggcrepe", e:"🫓", en:"Egg crepe (danbing)", zh:"蛋餅", kcal:250, p:9, c:26, f:12},
+  {id:"scallion", e:"🫓", en:"Scallion pancake", zh:"蔥油餅", kcal:300, p:6, c:35, f:16},
+  {id:"oyster", e:"🍳", en:"Oyster omelette", zh:"蚵仔煎", kcal:380, p:12, c:40, f:18},
+  {id:"tofupudding", e:"🍮", en:"Tofu pudding (douhua)", zh:"豆花", kcal:200, p:5, c:38, f:4},
+  {id:"bubbletea", e:"🧋", en:"Bubble tea", zh:"珍珠奶茶", kcal:350, p:4, c:70, f:6}
+];
+function foodName(f){ return curLang()==="zh" ? f.zh : f.en; }
+
+function ensureFoodDay(k){ if(!state.foodLog) state.foodLog={}; if(!state.foodLog[k]) state.foodLog[k]=[]; return state.foodLog[k]; }
+function dayFoodTotals(k){
+  const day=(state.foodLog&&state.foodLog[k])||[];
+  return day.reduce((t,e)=>({kcal:t.kcal+e.kcal, p:t.p+e.p, c:t.c+e.c, f:t.f+e.f}), {kcal:0,p:0,c:0,f:0});
+}
+function nextId(){ return "f"+Math.floor((typeof performance!=="undefined"?performance.now():0)*1000)+"_"+ (state.foodLog?Object.values(state.foodLog).reduce((n,a)=>n+a.length,0):0); }
+function addFood(food, qty){
+  qty = qty>0 ? qty : 1;
+  const day=ensureFoodDay(todayKey());
+  day.push({ id:nextId(), foodId:food.id||null, name:foodName(food)||food.en||food.name,
+    kcal:Math.round(food.kcal*qty), p:Math.round(food.p*qty*10)/10, c:Math.round(food.c*qty*10)/10, f:Math.round(food.f*qty*10)/10,
+    qty, e:food.e||"🍽️" });
+  if(day.length>50) day.splice(0, day.length-50);
+  try{ saveState(); }catch(e){ day.pop(); toast(t("toast_storage_full")); return; }
+  toast(t("toast_meal_added"));
+}
+function removeFood(entryId){
+  const k=todayKey();
+  const day=(state.foodLog&&state.foodLog[k])||[];
+  const i=day.findIndex(e=>e.id===entryId);
+  if(i>=0){
+    const removed=day.splice(i,1)[0];
+    saveState();
+    undoFood={entry:removed, date:k, index:i};       // show an undo chip
+    clearTimeout(undoTimer); undoTimer=setTimeout(()=>{ undoFood=null; renderToday(); }, 6000);
+  }
+}
+function restoreFood(){
+  if(!undoFood) return;
+  const day=ensureFoodDay(undoFood.date);
+  day.splice(Math.min(undoFood.index, day.length), 0, undoFood.entry);
+  saveState(); undoFood=null; clearTimeout(undoTimer);
+}
+function foodEntryName(e){ const f=FOODDB.find(x=>x.id===e.foodId); return f? foodName(f) : (e.name||""); }
+/* one supportive feedback line (simplified clinical rules) */
+function foodFeedback(c){
+  const day=(state.foodLog&&state.foodLog[todayKey()])||[];
+  if(!day.length) return null;
+  const tot=dayFoodTotals(todayKey());
+  const calPct=c.calories?tot.kcal/c.calories:0;
+  const proPct=c.proteinG?tot.p/c.proteinG:0;
+  const evening=new Date().getHours()>=18;
+  if(tot.kcal>0 && tot.kcal<1000 && evening) return {ico:"🩺", text:t("fb_check")};
+  if(c.goal==="gain" && calPct<0.7 && evening) return {ico:"🌱", text:t("fb_under_gain")(Math.max(0,Math.round(c.calories-tot.kcal)))};
+  if(c.goal==="lose" && calPct>1.1) return {ico:"🌙", text:t("fb_over_lose")};
+  if(proPct<0.8 && evening) return {ico:"💪", text:t("fb_protein_low")};
+  if(calPct>=0.9 && calPct<=1.1) return {ico:"✅", text:t("fb_on_track")};
+  if(proPct>=0.9) return {ico:"💪", text:t("fb_protein_ok")};
+  return {ico:"📊", text:t("fb_generic")(Math.max(0,Math.round(c.calories-tot.kcal)))};
+}
+/* Find food nearby — hands off to the device Maps app. No network from Vita. */
+function findFoodNearby(){
+  const q=encodeURIComponent(t("maps_query"));
+  const go=(url)=>{ try{ window.open(url,"_blank"); }catch(e){ location.href=url; } };
+  const fallback=()=>go("https://www.google.com/maps/search/"+q);
+  if(!navigator.geolocation) return fallback();
+  navigator.geolocation.getCurrentPosition(
+    ({coords:{latitude:la, longitude:ln}})=>{
+      const apple=/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent||"");
+      go(apple ? `https://maps.apple.com/?q=${q}&sll=${la},${ln}`
+               : `https://www.google.com/maps/search/${q}/@${la},${ln},15z`);
+    },
+    ()=>fallback(),
+    {timeout:8000, maximumAge:300000}
+  );
+}
+
+/* =========================================================================
    PROGRESS / STREAK
    ========================================================================= */
 function ensureToday(){
@@ -1035,6 +1216,85 @@ function ringSVG(pct){
   </svg><div class="center"><b>${Math.round(pct*100)}%</b><span>${t("ring_done")}</span></div></div>`;
 }
 
+let mealsPanelOpen = false;
+let undoFood = null, undoTimer = null;
+let bodyEditOpen = false;
+function ringMini(pct, big, sub, color){
+  const r=44, ci=2*Math.PI*r, off=ci*(1-Math.max(0,Math.min(1,pct)));
+  const stroke = color ? ` style="stroke:${color}"` : "";
+  return `<div class="ring" style="width:104px;height:104px;flex:none"><svg width="104" height="104" viewBox="0 0 120 120">
+    <circle class="track" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"/>
+    <circle class="fill" cx="60" cy="60" r="${r}" fill="none" stroke-width="10"${stroke} stroke-dasharray="${ci.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>
+  </svg><div class="center"><b style="font-size:1.25rem">${big}</b><span>${esc(sub)}</span></div></div>`;
+}
+function mealsCardHTML(c){
+  const k=todayKey();
+  const tot=dayFoodTotals(k);
+  const day=(state.foodLog&&state.foodLog[k])||[];
+  const kcalPct=c.calories?tot.kcal/c.calories:0;
+  const bar=(lab,val,target,color)=>{
+    const pct=target?Math.min(100,Math.round(val/target*100)):0;
+    return `<div class="macro-row"><span class="ml">${esc(lab)}</span>
+      <div class="mbar"><span style="width:${pct}%;background:${color}"></span></div>
+      <span class="mv">${Math.round(val)} / ${target} g</span></div>`;
+  };
+  let h=`<div class="section-label">${t("meals_title")}</div><div class="card">
+    <div class="ring-wrap" style="gap:var(--space-4)">${ringMini(kcalPct, Math.round(tot.kcal), t("ring_of")(c.calories), "var(--accent)")}
+      <div style="flex:1; min-width:0">
+        ${bar(t("macro_p"), tot.p, c.proteinG, "var(--primary)")}
+        ${bar(t("macro_c"), tot.c, c.carbG, "var(--secondary)")}
+        ${bar(t("macro_f"), tot.f, c.fatG, "var(--accent)")}
+      </div></div>`;
+  const fb=foodFeedback(c);
+  if(fb) h+=`<div class="tip" style="margin-top:var(--space-3)"><div class="tip-ico">${fb.ico}</div><div><p style="margin:0">${esc(fb.text)}</p></div></div>`;
+  if(day.length){
+    h+=`<div style="margin-top:var(--space-3)">`;
+    day.slice().reverse().forEach(e=>{
+      const q=(e.qty&&e.qty!==1)?` ×${e.qty}`:"";
+      h+=`<div class="food-entry"><span class="fe-emoji">${e.e||"🍽️"}</span>
+        <div class="fe-body"><div class="fe-name">${esc(foodEntryName(e))}${q}</div>
+        <div class="fe-macros">${t("macro_p").charAt(0)}${Math.round(e.p)} · ${t("macro_c").charAt(0)}${Math.round(e.c)} · ${t("macro_f").charAt(0)}${Math.round(e.f)}</div></div>
+        <div class="fe-kcal">${e.kcal}</div>
+        <button class="fe-del" data-del="${e.id}" aria-label="${t("remove_aria")}">✕</button></div>`;
+    });
+    h+=`</div>`;
+  } else {
+    h+=`<p class="small muted" style="margin-top:var(--space-3)">${t("no_meals")}</p>`;
+  }
+  if(undoFood && undoFood.date===k){
+    h+=`<div class="undo-chip"><span>${esc(foodEntryName(undoFood.entry))} · ${t("toast_meal_removed")}</span><button id="undoFoodBtn">${t("undo_word")}</button></div>`;
+  }
+  h+=`<div class="meal-actions">
+      <button class="btn sm" id="logMealBtn" aria-expanded="${mealsPanelOpen}">＋ ${t("log_meal")}</button>
+      <button class="btn secondary sm" id="findFoodBtn">📍 ${t("find_food")}</button>
+    </div>
+    <p class="small muted center" style="margin-top:6px">📍 ${t("find_food_hint")} · ${t("meals_disclaimer")}</p>`;
+  if(mealsPanelOpen){
+    h+=`<div class="divider"></div>
+      <input class="input" id="foodSearch" placeholder="${t("meal_search_ph")}" autocomplete="off" aria-label="${t("meal_search_ph")}">
+      <div class="pick-list" id="pickList">`;
+    FOODDB.forEach(f=>{
+      h+=`<div class="pick-row" data-name="${esc((f.en+" "+f.zh).toLowerCase())}">
+        <span class="pk-emoji">${f.e}</span>
+        <div class="pk-body"><div class="pk-name">${esc(foodName(f))}</div><div class="pk-kcal">${f.kcal} ${t("kcal_unit")} · ${f.p}/${f.c}/${f.f} g</div></div>
+        <div class="qty-step"><button data-q="-" data-id="${f.id}" aria-label="−">−</button><span id="q-${f.id}">1</span><button data-q="+" data-id="${f.id}" aria-label="+">＋</button></div>
+        <button class="pk-add" data-add="${f.id}">${t("add_word")}</button></div>`;
+    });
+    h+=`</div>
+      <div class="divider"></div>
+      <div class="row2"><input class="input" id="cfName" placeholder="${t("custom_name_ph")}" autocomplete="off">
+        <input class="input" id="cfKcal" type="number" inputmode="numeric" placeholder="${t("kcal_unit")}"></div>
+      <div class="row2" style="margin-top:8px">
+        <input class="input" id="cfP" type="number" inputmode="decimal" placeholder="${t("macro_p")} g">
+        <input class="input" id="cfC" type="number" inputmode="decimal" placeholder="${t("macro_c")} g"></div>
+      <div class="row2" style="margin-top:8px">
+        <input class="input" id="cfF" type="number" inputmode="decimal" placeholder="${t("macro_f")} g">
+        <button class="btn sm" id="cfAdd">${t("custom_food")}</button></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
 function renderToday(){
   const c = compute(state.profile);
   const today = ensureToday();
@@ -1075,6 +1335,8 @@ function renderToday(){
       <button class="water-btn add" id="water-plus" aria-label="${t("water_add_aria")}" ${glasses>=wTarget?"disabled":""}>${glasses>=wTarget?t("water_goal"):t("water_add")}</button>
     </div></div>`;
 
+  html += mealsCardHTML(c);
+
   html += `<div class="section-label">${t("todays_reqs")}</div>`;
   html += state.checklist.filter(item=>item.id!=="water").map(item=>{
     const done = !!today[item.id];
@@ -1096,16 +1358,42 @@ function renderToday(){
   });
   // water counter
   const setGlasses=(n)=>{
-    const t=ensureToday(); const tgt=waterTarget();
+    const td=ensureToday(); const tgt=waterTarget();
     n=Math.max(0, Math.min(tgt, n));
-    const wasBelow=(t.waterGlasses||0)<tgt;
-    t.waterGlasses=n; t.water = n>=tgt;       // syncs the "water" requirement
+    const wasBelow=(td.waterGlasses||0)<tgt;
+    td.waterGlasses=n; td.water = n>=tgt;       // syncs the "water" requirement
     saveState();
     if(n>=tgt && wasBelow) toast(t("toast_hydration"));
     renderToday();
   };
   $("#water-plus") && $("#water-plus").addEventListener("click",()=>setGlasses((ensureToday().waterGlasses||0)+1));
   $("#water-minus") && $("#water-minus").addEventListener("click",()=>setGlasses((ensureToday().waterGlasses||0)-1));
+
+  // ---- meals (offline food logger) ----
+  $("#logMealBtn") && $("#logMealBtn").addEventListener("click",()=>{ mealsPanelOpen=!mealsPanelOpen; renderToday(); });
+  $("#findFoodBtn") && $("#findFoodBtn").addEventListener("click", findFoodNearby);
+  $$("#page-today .fe-del").forEach(b=>b.addEventListener("click",()=>{ removeFood(b.dataset.del); renderToday(); }));
+  $("#undoFoodBtn") && $("#undoFoodBtn").addEventListener("click",()=>{ restoreFood(); renderToday(); });
+  if(mealsPanelOpen){
+    const search=$("#foodSearch");
+    if(search) search.addEventListener("input",()=>{ const q=search.value.trim().toLowerCase();
+      $$("#pickList .pick-row").forEach(r=>{ r.style.display=(!q || r.dataset.name.indexOf(q)>=0)?"":"none"; }); });
+    $$("#pickList .qty-step button").forEach(b=>b.addEventListener("click",()=>{
+      const span=$("#q-"+b.dataset.id); let v=parseFloat(span.textContent)||1;
+      v = b.dataset.q==="+" ? v+0.5 : Math.max(0.5, v-0.5);
+      span.textContent = Math.round(v*10)/10; }));
+    $$("#pickList .pk-add").forEach(b=>b.addEventListener("click",()=>{
+      const f=FOODDB.find(x=>x.id===b.dataset.add); const span=$("#q-"+b.dataset.add);
+      addFood(f, parseFloat(span?span.textContent:"1")||1); renderToday(); }));
+    const cfAdd=$("#cfAdd");
+    if(cfAdd) cfAdd.addEventListener("click",()=>{
+      const name=($("#cfName").value||"").trim(); const kcal=parseFloat($("#cfKcal").value);
+      if(!name || !(kcal>0)){ toast(curLang()==="zh"?"請輸入名稱與熱量":"Enter a name and calories"); return; }
+      addFood({ id:null, e:"🍽️", en:name, zh:name, kcal:kcal,
+        p:parseFloat($("#cfP").value)||0, c:parseFloat($("#cfC").value)||0, f:parseFloat($("#cfF").value)||0 }, 1);
+      renderToday();
+    });
+  }
 }
 
 function renderPlan(){
@@ -1342,6 +1630,25 @@ function renderProfile(){
       <button data-goal="lose" aria-pressed="${c.goal==='lose'}">${t("goal_lose_short")}</button>
     </div></div>`;
 
+  // Body composition editor (InBody) — user-editable
+  const ib = p.inbody || {}; const hasIb = !!p.inbody;
+  html += `<div class="section-label">${t("body_comp_title")}</div><div class="card">
+    <p class="small muted" style="margin:0 0 var(--space-3)">${t("body_comp_sub")}</p>`;
+  if(!bodyEditOpen){
+    html += `<button class="btn secondary sm" id="bodyEditToggle">${hasIb? t("edit_body") : t("add_body")}</button>`;
+  } else {
+    const u=units();
+    const tw = ib.target!=null ? (u==="imperial"? Math.round(kgToLb(ib.target)*10)/10 : ib.target) : "";
+    const fld=(id,label,val,unit)=>`<div class="field"><label>${label}${unit?` (${unit})`:""}</label><input class="input" id="${id}" type="number" inputmode="decimal" step="0.1" value="${val!=null?val:""}"></div>`;
+    html += `<div class="row2">${fld("ibTarget", t("bc_target"), tw, weightUnit(u))}${fld("ibScore", t("comp_score"), ib.score, "")}</div>
+      <div class="row2">${fld("ibVisceral", t("comp_visceral"), ib.visceralFat, "")}${fld("ibSmm", t("range_smm"), ib.smm, "kg")}</div>
+      <div class="row2">${fld("ibBodyfat", t("range_bodyFat"), ib.bodyFatMass, "kg")}${fld("ibTbw", t("range_tbw"), ib.tbw, "L")}</div>
+      <div class="row2">${fld("ibProtein", t("range_protein"), ib.protein, "kg")}${fld("ibMinerals", t("range_minerals"), ib.minerals, "kg")}</div>
+      <button class="btn sm" id="ibSave">${t("save_word")}</button>`;
+    if(hasIb) html += `<div style="height:10px"></div><button class="btn danger" id="ibRemove">${t("remove_word")}</button>`;
+  }
+  html += `</div>`;
+
   // Actions
   html += `<div class="section-label">${t("manage")}</div>
     <button class="btn secondary" id="retake">${t("retake")}</button>
@@ -1376,6 +1683,19 @@ function renderProfile(){
     state.profile.goalOverride = b.dataset.goal===detectGoal(state.profile) ? null : b.dataset.goal;
     rebuildPlan(); saveState(); toast(t("toast_goal")); renderAll();
   }));
+  $("#bodyEditToggle") && $("#bodyEditToggle").addEventListener("click",()=>{ bodyEditOpen=true; renderProfile(); });
+  $("#ibSave") && $("#ibSave").addEventListener("click",()=>{
+    const num=(id)=>{ const v=parseFloat($("#"+id).value); return isFinite(v)?v:null; };
+    let target=num("ibTarget"); if(target!=null && units()==="imperial") target=Math.round(lbToKg(target)*10)/10;
+    const ibNew={ smm:num("ibSmm"), tbw:num("ibTbw"), protein:num("ibProtein"), minerals:num("ibMinerals"),
+      bodyFatMass:num("ibBodyfat"), bmr:(state.profile.inbody&&state.profile.inbody.bmr)||null,
+      score:num("ibScore"), visceralFat:num("ibVisceral"), target:target };
+    if(Object.values(ibNew).some(v=>v!=null)) state.profile.inbody=ibNew; else delete state.profile.inbody;
+    saveState(); bodyEditOpen=false; toast(t("toast_body_saved")); renderAll();
+  });
+  $("#ibRemove") && $("#ibRemove").addEventListener("click",()=>{
+    delete state.profile.inbody; saveState(); bodyEditOpen=false; toast(t("toast_body_removed")); renderAll();
+  });
   $("#retake").addEventListener("click",()=>{ startOnboarding(state.profile); });
   $("#exportBtn").addEventListener("click",exportData);
   $("#resetBtn").addEventListener("click",()=>{

@@ -1,5 +1,5 @@
 /* Vita service worker — offline caching only. No network beacons, no tracking. */
-const CACHE = "vita-v2";
+const CACHE = "vita-v3";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
